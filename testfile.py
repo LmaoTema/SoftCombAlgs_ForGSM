@@ -6,9 +6,10 @@ from transmitter.modulator import GMSKModulation
 from receiver.detector.gmsk_det import GMSKDetector
 
 params = {}
+block_params = {"matched filter": {"is_working": False}}
 
 mod = GMSKModulation(params)
-det = GMSKDetector(params)
+det = GMSKDetector(params, block_params)
 
 bits = np.random.randint(0, 2, 148)
 sig = mod.process_mod(bits)
