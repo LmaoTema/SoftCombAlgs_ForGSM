@@ -2,7 +2,7 @@ import numpy as np
 from .vit_detector_osmo import calc_increment_osmo, calc_metric_osmo, find_best_stop_state_osmo, traceback_osmo
 
 class GMSKDetector:
-    def __init__(self, params):
+    def __init__(self, params, block_params):
         self.BT = params.get("BT", 0.3)
         self.T = params.get("T", 3.69e-6)
         self.sps = params.get("sps", 4)
@@ -10,44 +10,33 @@ class GMSKDetector:
         self.h = params.get("h", 0.5)
         self.gaus_duration = params.get("gaus_duration", 4)
         self.rect_duration = params.get("rect_duration", 1)
-        self.type_demod = params.get("type_demod", "vit_hard") # diff_phase / vit_hard / vit_soft 
+        self.type_demod = params.get("type_demod", "diff_phase") # diff_phase / vit_hard / vit_soft 
 
-    def gmsk_filter(self):
-        BT = self.BT
-        T = self.T
-        gaus_duration = self.gaus_duration
-        rect_duration = self.rect_duration
+        self.mf_is_working = block_params["matched filter"]["is_working"]
 
-        oversampling = 100
-        sps_oversampling = self.sps * oversampling
-        dt_oversampling = T/sps_oversampling
+    def calc_rhh(self, h):
+        n = np.arange(h.size)
+        # Разобраться с инкрементами. Надо ли вращать самостоятельно
+        # h_complex = h * (1j**(n / self.sps))
+        h_complex = h
+        rhh_full = np.convolve(h_complex, np.conj(h_complex[::-1]))
+        center_idx = h_complex.size - 1
+        rhh = rhh_full[center_idx :: self.sps]
 
-        delta = np.sqrt(np.log(2)) / (2 * np.pi * BT)
-
-        t_h = np.arange(-gaus_duration / 2 * T, gaus_duration / 2 * T, dt_oversampling)
-        t_rect = np.arange(-rect_duration / 2 * T, rect_duration / 2 * T, dt_oversampling)
-
-        h_t = np.exp(-(t_h**2) / (2 * (delta**2) * (T**2))) / (
-            np.sqrt(2 * np.pi) * delta * T
-        )
-        rect = np.ones(t_rect.size) / T
-
-        g_t = np.convolve(h_t, rect) * dt_oversampling
-
-        return g_t
+        return rhh
 
     def calc_increment(self, rhh):
         # Определяем влияние предыдущих бит для каждого состояния
         # C учетом деротации (+ - - +)
         increment = np.zeros(16)
-        increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
-        increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
-        increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
-        increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
-        increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
-        increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
-        increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
-        increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
+        increment[0] = rhh[4].real + rhh[3].real + rhh[2].real + rhh[1].real
+        increment[1] = rhh[4].real + rhh[3].real + rhh[2].real - rhh[1].real
+        increment[2] = rhh[4].real + rhh[3].real - rhh[2].real + rhh[1].real
+        increment[3] = rhh[4].real + rhh[3].real - rhh[2].real - rhh[1].real
+        increment[4] = rhh[4].real - rhh[3].real + rhh[2].real + rhh[1].real
+        increment[5] = rhh[4].real - rhh[3].real + rhh[2].real - rhh[1].real
+        increment[6] = rhh[4].real - rhh[3].real - rhh[2].real + rhh[1].real
+        increment[7] = rhh[4].real - rhh[3].real - rhh[2].real - rhh[1].real
         increment[8] = - increment[7]
         increment[9] = - increment[6]
         increment[10] = - increment[5]
@@ -56,6 +45,22 @@ class GMSKDetector:
         increment[13] = - increment[2]
         increment[14] = - increment[1]
         increment[15] = - increment[0]
+        # increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
+        # increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
+        # increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
+        # increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
+        # increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
+        # increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
+        # increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
+        # increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
+        # increment[8] = - increment[7]
+        # increment[9] = - increment[6]
+        # increment[10] = - increment[5]
+        # increment[11] = - increment[4]
+        # increment[12] = - increment[3]
+        # increment[13] = - increment[2]
+        # increment[14] = - increment[1]
+        # increment[15] = - increment[0]
 
         return increment
 
@@ -81,6 +86,7 @@ class GMSKDetector:
                 sign_rotate = - sign_rotate
                 input_symbol =  sign_rotate * sampled_signal[sample_nr].real
 
+            # в итоге инвертированный знак. может и инкременты поменять
             for i in range(8):
                 pm_candidate1 = old_path_metrics[i] + input_symbol - increment[i]
                 pm_candidate2 = old_path_metrics[i + 8] + input_symbol - increment[i + 8]
@@ -108,7 +114,7 @@ class GMSKDetector:
 
         return trans_table, old_path_metrics
     
-    def find_best_stop_state(old_path_metrics, stop_states=[0, 8]):
+    def find_best_stop_state(self, old_path_metrics, stop_states=[0, 8]):
         best_stop_state = stop_states[0]
         max_stop_state_metric = old_path_metrics[best_stop_state]
         for s in stop_states:
@@ -119,7 +125,6 @@ class GMSKDetector:
         return best_stop_state
     
     def traceback(self, trans_table, best_stop_state):
-        
         state_transfer = [
             [0, 8],
             [0, 8],
@@ -152,13 +157,11 @@ class GMSKDetector:
                 else:
                     prev_state = state_transfer[curr_state][0]
 
-                bits[sample_nr] = curr_state % 2
+                bits[sample_nr] = (curr_state % 2) ^ 1
 
             curr_state = prev_state
 
         return bits
-
-  
 
     def diff_phase(self, burst_samples):
         y_k = burst_samples[self.sps - 1 :: self.sps]
@@ -182,18 +185,23 @@ class GMSKDetector:
 
         return burst_bits
 
-    def process_detect(self, complex_signal):
-
+    def process_detect(self, complex_signal, h):
+        
         sps = self.sps
         samples_per_burst = 156 * sps
         num_bursts = len(complex_signal) // samples_per_burst
     
         all_bits = []
 
-        if self.type_demod in ["vit_soft", "vit_hard"]:
-            increment = calc_increment_osmo()
-
         for b in range(num_bursts):
+            if self.type_demod in ["vit_soft", "vit_hard"]:
+                if self.mf_is_working == False:
+                    increment = np.zeros(16)
+                else:
+                    rhh = self.calc_rhh(h[b])
+                    increment = self.calc_increment(rhh)
+                    # increment = np.zeros(16)
+        
             start_idx = b * samples_per_burst
             burst_samples = complex_signal[start_idx : start_idx + 148 * sps]
 
@@ -203,11 +211,12 @@ class GMSKDetector:
 
             elif self.type_demod in ["vit_soft", "vit_hard"]:
                 sampled_signal = burst_samples[self.sps - 1 :: self.sps]
-                trans_table, old_path_metrics, real_imag = calc_metric_osmo(increment, sampled_signal, start_state=0)
 
-                best_stop_state = find_best_stop_state_osmo(old_path_metrics)
+                trans_table, old_path_metrics = self.calc_metric(increment, sampled_signal, start_state=0)
 
-                burst_bits = traceback_osmo(trans_table, best_stop_state, real_imag, self.type_demod)
+                best_stop_state = self.find_best_stop_state(old_path_metrics)
+
+                burst_bits = self.traceback(trans_table, best_stop_state)
 
                 all_bits.append(burst_bits)
                 

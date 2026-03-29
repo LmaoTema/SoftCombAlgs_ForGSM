@@ -1,34 +1,49 @@
+from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "TCHFS",
-    "channel_model": "awgn" # rayleigh_single, rayleigh_multipath, awgn
+    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "sweep_mode": "snr"         # "prx"/"snr"
 }
 
 block_params = {
 
-    "encoding": {"is_working": True},
-    "interleaver": {"is_working": True},
-    "modulation": {"is_working": True},
-    "channel": {"is_working": True},
-    "equalizer": {"is_working": True},
+    "encoding":       {"is_working": True},
+    "interleaver":    {"is_working": True},
+    "modulation":     {"is_working": True},
+    "channel":        {"is_working": True},
+    "matched filter": {"is_working": False},
+    "equalizer":      {"is_working": False},
 }
 
 BER = {
-    "h2dB_init": 0,
+    "h2dB_init": 0.0,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
-    "h2dB_max": 25,
+    "h2dB_max": 26.0,
+    
+    "prx_dbm_init": -118.0,
+    "prx_dbm_init_step": 2.0,
+    "prx_dbm_min_step": 2.0,
+    "prx_dbm_max_step": 4.0,
+    "prx_dbm_max": -100.0,
+
     "min_BER": 1e-3,
     "min_FER": 1,
-    "min_NumErBits": 700,
-    "min_NumErFrames": 350,
-    "min_NumTrFrames": 700,
+    
+    "min_NumErBits": 7800,
+    "min_NumErFrames": 400,
+    "min_NumTrFrames": 800,
+    
     "max_NumTrBits": 1e8,
-    "max_NumTrFrames": float("inf"),
+    "max_NumTrFrames": 5000,
+    
     "max_BERRate": 5,
     "min_BERRate": 2,
-    "log_language": "Russian"
+    "log_language": "Russian",
+    
+    "stop_by_min_BER": False
 }
 
 mode_params = {
@@ -57,19 +72,27 @@ modulation_params = {
     "h": 0.5,
     "gaus_duration": 4,
     "rect_duration": 1,
-    "type_demod": "diff_phase" # diff_phase / vit_hard / vit_soft 
+    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
-    "equalizer_type": "ZF" # ZF / MMSE / DFE / MLSE
+    "equalizer_type": "MLSE", # ZF /  DFE / MLSE
+    "channel_model":simulation_params.get("channel_model", "awgn"),
 }
 
 channel_params = {
-    "code_rate": 260/456, 
-    "bits_per_symbol": 1, 
-    "burst_eff": 456/468, 
+    "snr_db": 20.0,
+    "code_rate": 260 / 456,
+    "bits_per_symbol": 1,
+    "burst_eff": 456 / 624,
+    
+    "temperature": 290.0,       # [К]
+    "noise_figure": 7.0,        # [db]
+    "bandwidth": 200e3,         # [Hz]
+    "signal_power": -102.0,     # принимаемая мощность сигнала по умолчанию [dbm]
+  
     "profile": "TU",        # TU / RA / HT
     "sample_rate": 1e6,
-    "doppler": 100
+    "doppler": 100,
 }
 

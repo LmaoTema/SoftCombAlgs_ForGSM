@@ -28,7 +28,7 @@ class CRC5350Decoder:
 
         return data
     
-class TCHFSSpeechDecoder:
+class TCHFSDecoder:
 
     def __init__(self):
 
