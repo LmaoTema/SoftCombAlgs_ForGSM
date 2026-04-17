@@ -11,16 +11,9 @@ class AWGNChannel():
         bandwidth = 200e3, 
         noise_figure = 7.0, 
         signal_power = None,
-        code_rate = 1.0,
-        bits_per_symbol = 1,
-        burst_eff = 1.0,
         ):
         
         self.snr_db = snr_db
-        self.code_rate = code_rate
-        self.bits_per_symbol = bits_per_symbol
-        self.burst_eff = burst_eff
-        
         self.temperature = temperature
         self.bandwidth = bandwidth
         self.noise_figure = noise_figure
@@ -29,6 +22,12 @@ class AWGNChannel():
     @staticmethod
     def db_to_linear(x_db):
         return 10 ** (x_db / 10.0)
+    
+    @staticmethod
+    def linear_to_do(x_lin):
+        if x_lin <= 0:
+            return -np.inf
+        return 10.0 * np.log10(x_lin)
     
     @staticmethod
     def dbm_to_watt(p_dbm):
@@ -65,23 +64,15 @@ class AWGNChannel():
         return x * scale
     
     def _process_prx_mode(self, x, signal_power = None):
-        
         x = np.asarray(x, dtype = np.complex128)
         
-        target_power_dbm = (
-            signal_power
-            if signal_power is not None
-            else self.signal_power
-        )
+        target_power_dbm = signal_power if signal_power is not None else self.signal_power
         if target_power_dbm is None:
-            raise ValueError(
-                "For P_rx mode, signal_power must be provided either in constructor or in process()."
-            )
+            raise ValueError("For P_rx mode, signal_power must be provided.")
         
         x = self.scale_signal_to_power(x, target_power_dbm)
 
         noise_power = self.get_noise_power_watt()
-
         noise = np.sqrt(noise_power / 2.0) * (
             np.random.randn(*x.shape) + 1j * np.random.randn(*x.shape)
         )
@@ -89,41 +80,36 @@ class AWGNChannel():
         return x + noise
 
     def _process_snr_mode(self, x, snr_db = None):
-       
-        x = np.asarray(x, dtype=np.complex128)
+        x = np.asarray(x, dtype = np.complex128)
        
         snr_db_used = snr_db if snr_db is not None else self.snr_db
         if snr_db_used is None:
             raise ValueError(
-                "For SNR mode, snr_db must be provided either in constructor or in process()."
+                "For SNR mode, snr_db must be provided."
             )
 
-        # Средняя мощность сигнала
-        Ps = np.mean(np.abs(x) ** 2)
+        noise_power_watt = self.get_noise_power_watt()
+        noise_power_dbm = self.watt_to_dbm(noise_power_watt)
         
-        Pb = Ps / self.bits_per_symbol
-
-        eff_rate = self.code_rate * self.burst_eff
-        if eff_rate <= 0:
-            raise ValueError("Effective rate must be positive")
-
-        pbd = Pb / eff_rate
-
-        snr_linear = 10 ** (snr_db_used / 10.0)
-        noise_var = pbd / snr_linear
-
-        noise = np.sqrt(noise_var / 2.0) * (
+        target_signal_power_dbm = noise_power_dbm + float(snr_db_used)
+        
+        x = self.scale_signal_to_power(x, target_signal_power_dbm)
+        
+        noise = np.sqrt(noise_power_watt / 2.0) * (
             np.random.randn(*x.shape) + 1j * np.random.randn(*x.shape)
         )
-
+        
         return x + noise
-
+        
     def process(self, x, signal_power = None, snr_db = None):
-      
         x = np.asarray(x, dtype = np.complex128)
 
-        use_prx_mode = (signal_power is not None) or (
-            signal_power is None and snr_db is None and self.signal_power is not None
+        use_prx_mode = ((signal_power is not None) 
+            or (
+                signal_power is None 
+                and snr_db is None 
+                and self.signal_power is not None
+            )
         )
         
         if use_prx_mode:

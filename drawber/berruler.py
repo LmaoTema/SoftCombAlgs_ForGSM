@@ -157,8 +157,21 @@ class BERRuler:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for name, stat in self.stats.items():
-            ber = stat["NumErBits"] / max(1, stat["NumTrBits"])
-            fer = stat["NumErFrames"] / max(1, stat["NumTrFrames"])
+            n_bits = max(1, stat["NumTrBits"])
+            n_err_bits = stat["NumErBits"]
+
+            if n_err_bits > 0:
+                ber = n_err_bits / n_bits
+            else:
+                ber = 3.0 / n_bits
+
+            n_frames = max(1, stat["NumTrFrames"])
+            n_err_frames = stat["NumErFrames"]
+
+            if n_err_frames > 0:
+                fer = n_err_frames / n_frames
+            else:
+                fer = 3.0 / n_frames
            
             self.results[name]["BER"].append(ber)
             self.results[name]["FER"].append(fer)

@@ -1,8 +1,9 @@
+import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "TCHFS",
-    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_model": "rayleigh_single",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "sweep_mode": "snr"         # "prx"/"snr"
 }
 
@@ -21,23 +22,23 @@ BER = {
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
-    "h2dB_max": 26.0,
+    "h2dB_max": 20.0,
     
     "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 2.0,
-    "prx_dbm_min_step": 2.0,
-    "prx_dbm_max_step": 4.0,
+    "prx_dbm_init_step": 1.0,
+    "prx_dbm_min_step": 1.0,
+    "prx_dbm_max_step": 2.0,
     "prx_dbm_max": -100.0,
 
     "min_BER": 1e-3,
     "min_FER": 1,
     
-    "min_NumErBits": 7800,
-    "min_NumErFrames": 400,
-    "min_NumTrFrames": 800,
+    "min_NumErBits": 700,
+    "min_NumErFrames": 1500,
+    "min_NumTrFrames": 1500,
     
     "max_NumTrBits": 1e8,
-    "max_NumTrFrames": 5000,
+    "max_NumTrFrames": np.inf,
     
     "max_BERRate": 5,
     "min_BERRate": 2,
@@ -81,11 +82,7 @@ equalizer_params = {
 }
 
 channel_params = {
-    "snr_db": 20.0,
-    "code_rate": 260 / 456,
-    "bits_per_symbol": 1,
-    "burst_eff": 456 / 624,
-    
+    "snr_db": 20.0, 
     "temperature": 290.0,       # [К]
     "noise_figure": 7.0,        # [db]
     "bandwidth": 200e3,         # [Hz]

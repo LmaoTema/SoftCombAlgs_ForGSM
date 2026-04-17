@@ -1,5 +1,6 @@
 from core.block import Block
-from receiver.deinterleaver.tch_cs_dein import SpeechDeinterleaver
+from receiver.deinterleaver.tch_dein import SpeechDeinterleaver
+from receiver.deinterleaver.cs_dein import CS1Deinterleaver
 from receiver.deinterleaver.mcs1_dein import MCS1Deinterleaver
 
 class Deinterleaver(Block):
@@ -12,7 +13,7 @@ class Deinterleaver(Block):
             self.deinterleaver = SpeechDeinterleaver()
 
         elif scheme == "CS1":
-            self.deinterleaver = SpeechDeinterleaver()
+            self.deinterleaver = CS1Deinterleaver()
 
         elif scheme == "MCS1":
             self.deinterleaver = MCS1Deinterleaver()

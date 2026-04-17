@@ -1,6 +1,6 @@
 from core.block import Block
-from transmitter.interleaver.cstch import SpeechInterleaver
-from transmitter.interleaver.cstch import SpeechInterleaver as CS1Interleaver
+from transmitter.interleaver.tch import TCHInterleaver
+from transmitter.interleaver.cs import CS1Interleaver
 from transmitter.interleaver.msc_1 import MCS1Interleaver
 from transmitter.interleaver.msc_5 import MCS5Interleaver
 
@@ -12,7 +12,7 @@ class Interleaver(Block):
         super().__init__(is_working)
 
         if scheme == "TCHFS":
-            self.interleaver = SpeechInterleaver()
+            self.interleaver = TCHInterleaver()
 
         elif scheme == "CS1":
             self.interleaver = CS1Interleaver()

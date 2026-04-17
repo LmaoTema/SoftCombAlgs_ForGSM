@@ -24,7 +24,7 @@ class MatchedFilter(Block):
             rx_burst = rx_signal[start_idx  : end_idx]
 
             burst_match = np.convolve(rx_burst, np.conj(h_est[::-1]))
-            burst_trunc = burst_match[int(h_est.size / 2): - int(h_est.size / 2) + 1]
+            burst_trunc = burst_match[int(h_est.size / 2) - 1: - int(h_est.size / 2)]
             match_signal.append(burst_trunc)
 
         return np.concatenate(match_signal)

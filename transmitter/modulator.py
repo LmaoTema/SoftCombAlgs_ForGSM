@@ -57,12 +57,12 @@ class GMSKModulation:
 
         oversampling = 100
         sps_oversampling = self.sps * oversampling
-        dt_oversampling = T/sps_oversampling
+        dt_oversampling = T / sps_oversampling
 
         delta = np.sqrt(np.log(2)) / (2 * np.pi * BT)
 
-        t_h = np.arange(-gaus_duration / 2 * T, gaus_duration / 2 * T, dt_oversampling)
-        t_rect = np.arange(-rect_duration / 2 * T, rect_duration / 2 * T, dt_oversampling)
+        t_h = np.arange(-gaus_duration * (T / 2), gaus_duration * (T / 2), dt_oversampling)
+        t_rect = np.arange(-rect_duration * (T / 2), rect_duration * (T / 2), dt_oversampling)
 
         h_t = np.exp(-(t_h**2) / (2 * (delta**2) * (T**2))) / (
             np.sqrt(2 * np.pi) * delta * T
