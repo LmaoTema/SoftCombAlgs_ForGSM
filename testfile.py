@@ -25,7 +25,8 @@ from drawber.plot import plot_ber
 plot_params = {
     "modulation":     {"is_working": False},
     "estimation":     {"is_working": False},
-    "matched filter": {"is_working": True},
+    "matched_filter": {"is_working": False},
+    "demodulation":   {"is_working": True},
 }
 def plot_num_subplot(plots_data):
 
@@ -48,21 +49,19 @@ def plot_num_subplot(plots_data):
 
     return
 
-def plot_many_on_one(plots_data):
+def plot_together(plots_data):
 
     num_plot = len(plots_data)
     plt.figure()
 
     for i in range(num_plot):
         data = plots_data[i]
-
         plt.plot(data["x"], data["y"], c=data.get("color", "r"), lw=data.get("lw", 3), label=data.get("label", ""))
-        plt.title(data.get("title", ""), fontsize=20)
-        plt.xlabel(data.get("xlabel", ""), fontsize=14)
-        plt.ylabel(data.get("ylabel", ""), fontsize=14)
 
-        plt.grid()
-
+    plt.title(data.get("title", ""), fontsize=20)
+    plt.xlabel(data.get("xlabel", ""), fontsize=14)
+    plt.ylabel(data.get("ylabel", ""), fontsize=14)
+    plt.grid()
     plt.tight_layout()
     plt.legend()
     plt.show()
@@ -122,7 +121,7 @@ def plot_estimation(h):
 
 def plot_mf(rx_signal, conv_signal, match_signal):
     sps = 4
-    plot_data = [
+    plot_data_sub = [
         # rx_signal
         {   
             "title": "rx_signal",
@@ -140,10 +139,23 @@ def plot_mf(rx_signal, conv_signal, match_signal):
             "color": "g",
             "lw": 2,
             "label": "conv_signal"
+        }
+    ]
+    plot_num_subplot(plot_data_sub)
+
+    plot_data_together = [
+        # rx_signal
+        {   
+            "title": "rx_signal",
+            "x": np.arange(rx_signal.size) / sps,
+            "y": rx_signal,
+            "color": "r",
+            "lw": 2,
+            "label": "rx_signal"
         },
         # match_signal
         {   
-            "title": "match_signal",
+            "title": "signal",
             "x": np.arange(match_signal.size) / sps,
             "y": match_signal,
             "color": "c",
@@ -151,8 +163,52 @@ def plot_mf(rx_signal, conv_signal, match_signal):
             "label": "match_signal"
         }
     ]
-    plot_num_subplot(plot_data)
-    plot_many_on_one(plot_data)
+    plot_together(plot_data_together)
+
+def plot_demod(rhh_full, rhh, match_signal, sampled_signal, rx_bits):
+    sps = 4
+    plot_data_rhh = [
+        # rhh_full
+        {   
+            "title": "rhh_full",
+            "x": np.arange(rhh_full.size) / sps,
+            "y": rhh_full,
+            "color": "r",
+            "lw": 2,
+        },
+        # rhh
+        {   
+            "title": "rhh",
+            "x": np.arange(rhh.size),
+            "y": rhh,
+            "color": "g",
+            "lw": 2,
+        }
+    ]
+    plot_num_subplot(plot_data_rhh)
+
+    plot_data_signal = [
+         # match_signal
+        {   
+            "title": "match_signal",
+            "x": np.arange(match_signal.size) / sps,
+            "y": match_signal,
+            "color": "r",
+            "lw": 2,
+            "label": "match_signal"
+        },
+        # sampled_signal
+        {   
+            "title": "signal detector",
+            "x": np.arange(sampled_signal.size),
+            "y": sampled_signal,
+            "color": "g",
+            "lw": 2,
+            "label": "sampled_signal"
+        },
+    ]
+    plot_together(plot_data_signal)
+
 
     
 def main():
@@ -179,7 +235,7 @@ def main():
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])
 
     estimator = ChannelEstimate(modulation_params, simulation_params)
-    match_filter = MatchedFilter(modulation_params, is_working=block_params["matched filter"]["is_working"])
+    match_filter = MatchedFilter(modulation_params, is_working=block_params["matched_filter"]["is_working"])
 
     equalizer = Equalizer(equalizer_params, modulation_params, is_working=block_params["equalizer"]["is_working"])
     
@@ -223,19 +279,24 @@ def main():
             # Matched filter
             conv_signal = np.convolve(rx_signal, np.conj(h[::-1]))
             match_signal = conv_signal[int(h.size / 2) - 1: - int(h.size / 2)]
-            if plot_params["matched filter"]["is_working"]:
+            if plot_params["matched_filter"]["is_working"]:
                 plot_mf(rx_signal, conv_signal, match_signal)
 
             # Detector
-            rhh = detector.detector.calc_rhh(h)
+            # rhh
+            rhh_full = np.convolve(h, np.conj(h))
+            center_idx = h.size
+            rhh = rhh_full[center_idx :: -detector.detector.sps]
             increment = detector.detector.calc_increment(rhh)
-            sampled_signal = match_signal[detector.detector.sps - 1 :: detector.detector.sps]
+            sampled_signal = match_signal[:: detector.detector.sps]
             trans_table, old_path_metrics = detector.detector.calc_metric(increment, sampled_signal, start_state=0)
             best_stop_state = detector.detector.find_best_stop_state(old_path_metrics)
             rx_bits = detector.detector.traceback(trans_table, best_stop_state)
+            if plot_params["demodulation"]["is_working"]:
+                plot_demod(rhh_full, rhh, match_signal, sampled_signal, rx_bits)
 
             # Deint + decod
-            rx_bits = np.append(rx_bits, np.zeros(624-148))
+            rx_bits = np.append(rx_bits, np.zeros(148 * 8 - 148))
             bits_deintr = deinterv.process(rx_bits)
             decoded_bits = decoder.process(bits_deintr)
 
