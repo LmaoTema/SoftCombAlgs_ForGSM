@@ -32,7 +32,7 @@ class GMSKModulation:
         self.sps = params.get("sps", 4)
         self.dt = self.T / self.sps
         self.h = params.get("h", 0.5)
-        self.gaus_duration = params.get("gaus_duration", 4)
+        self.gaus_duration = params.get("gaus_duration", 3)
         self.rect_duration = params.get("rect_duration", 1)
 
         return
@@ -88,7 +88,6 @@ class GMSKModulation:
         num_bits = alpha.size
         phi = np.zeros(num_bits * sps + q_gmsk.size - sps)
 
-        #  phase accumulation
         for i in range(num_bits):
             alpha_i = alpha[i]
             start_idx = i * sps
@@ -98,20 +97,11 @@ class GMSKModulation:
             phase_step = alpha_i * np.pi * h
             phi[start_idx + q_gmsk.size :] += phase_step
 
-        # shift to synchronization with the modulation symbol changes
-        # an additional shift of 0.5 need to move to the center of the bit 
+        # Сдвиг, чтобы изменению символа соответствовало изменение фазы
         shift = (gaus_duration + rect_duration) / 2 - 0.5
-        phi = phi[int(shift * sps) : int(shift * sps) + alpha_repeat.size]
+        phi_shift = phi[int(shift * sps) : int(shift * sps) + alpha_repeat.size]
 
-        return phi
-
-    def calc_signal(self, phi):
-        dt = self.dt
-
-        t = np.arange(phi.size) * dt
-        x_t = np.exp(1j * phi)
-
-        return x_t
+        return phi_shift
 
     def process_mod(self, bits):
         
@@ -131,9 +121,9 @@ class GMSKModulation:
 
             alpha = self.differential_encoding(burst)
             phi = self.calc_phase(alpha, q_gmsk)
-            signal = self.calc_signal(phi)
+            signal_envelope = np.exp(1j * phi)
             
-            all_signals.append(signal)
+            all_signals.append(signal_envelope)
             all_signals.append(guard_period)
 
         return np.concatenate(all_signals)

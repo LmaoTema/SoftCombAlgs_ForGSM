@@ -12,13 +12,13 @@ block_params = {
     "encoding":       {"is_working": True},
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
-    "channel":        {"is_working": True},
-    "matched filter": {"is_working": False},
-    "equalizer":      {"is_working": False},
+    "channel":        {"is_working": False},
+    "matched_filter": {"is_working": True},
+    "equalizer":      {"is_working": True},
 }
 
 BER = {
-    "h2dB_init": 0.0,
+    "h2dB_init": -8.0,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
@@ -71,7 +71,7 @@ modulation_params = {
     "T": 3.69e-6,
     "sps": 4,
     "h": 0.5,
-    "gaus_duration": 4,
+    "gaus_duration": 3,
     "rect_duration": 1,
     "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }

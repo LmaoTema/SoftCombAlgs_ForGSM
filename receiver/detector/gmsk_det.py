@@ -12,7 +12,7 @@ class GMSKDetector:
         self.rect_duration = params.get("rect_duration", 1)
         self.type_demod = params.get("type_demod", "diff_phase") # diff_phase / vit_hard / vit_soft 
 
-        self.mf_is_working = block_params["matched filter"]["is_working"]
+        self.mf_is_working = block_params["matched_filter"]["is_working"]
 
     def calc_rhh(self, h):
         rhh_full = np.convolve(h, np.conj(h))
