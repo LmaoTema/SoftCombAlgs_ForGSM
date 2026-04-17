@@ -222,7 +222,7 @@ def main():
 
             # Matched filter
             conv_signal = np.convolve(rx_signal, np.conj(h[::-1]))
-            match_signal = conv_signal[int(h.size / 2) + 1: - int(h.size / 2)]
+            match_signal = conv_signal[int(h.size / 2) - 1: - int(h.size / 2)]
             if plot_params["matched filter"]["is_working"]:
                 plot_mf(rx_signal, conv_signal, match_signal)
 
