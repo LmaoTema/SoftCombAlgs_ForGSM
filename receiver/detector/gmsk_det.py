@@ -8,19 +8,15 @@ class GMSKDetector:
         self.sps = params.get("sps", 4)
         self.dt = self.T / self.sps
         self.h = params.get("h", 0.5)
-        self.gaus_duration = params.get("gaus_duration", 4)
+        self.gaus_duration = params.get("gaus_duration", 3)
         self.rect_duration = params.get("rect_duration", 1)
         self.type_demod = params.get("type_demod", "diff_phase") # diff_phase / vit_hard / vit_soft 
 
-        self.mf_is_working = block_params["matched filter"]["is_working"]
+        self.mf_is_working = block_params["matched_filter"]["is_working"]
 
     def calc_rhh(self, h):
-        n = np.arange(h.size)
-        # Разобраться с инкрементами. Надо ли вращать самостоятельно
-        # h_complex = h * (1j**(n / self.sps))
-        h_complex = h
-        rhh_full = np.convolve(h_complex, np.conj(h_complex[::-1]))
-        center_idx = h_complex.size - 1
+        rhh_full = np.convolve(h, np.conj(h))
+        center_idx = h.size
         rhh = rhh_full[center_idx :: self.sps]
 
         return rhh
@@ -184,7 +180,6 @@ class GMSKDetector:
                 else:
                     rhh = self.calc_rhh(h[b])
                     increment = self.calc_increment(rhh)
-        
             start_idx = b * samples_per_burst
             burst = complex_signal[start_idx : start_idx + 148 * sps]
 

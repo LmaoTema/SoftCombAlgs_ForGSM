@@ -45,7 +45,7 @@ def main():
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])
 
     estimator = ChannelEstimate(modulation_params, simulation_params)
-    match_filter = MatchedFilter(modulation_params, is_working=block_params["matched filter"]["is_working"])
+    match_filter = MatchedFilter(modulation_params, is_working=block_params["matched_filter"]["is_working"])
 
     equalizer = Equalizer(equalizer_params, modulation_params, is_working=block_params["equalizer"]["is_working"])
     

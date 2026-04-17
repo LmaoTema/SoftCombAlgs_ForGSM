@@ -7,7 +7,7 @@ class ChannelEstimate():
         self.BT = modulation_params.get("BT", 0.3)
         self.T = modulation_params.get("T", 3.69e-6)
         self.sps = modulation_params.get("sps", 4)
-        self.gaus_duration = modulation_params.get("gaus_duration", 4)
+        self.gaus_duration = modulation_params.get("gaus_duration", 3)
         self.rect_duration = modulation_params.get("rect_duration", 1)
         self.L = (self.gaus_duration + self.rect_duration)
 
