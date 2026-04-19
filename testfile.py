@@ -25,8 +25,8 @@ from drawber.plot import plot_ber
 plot_params = {
     "modulation":     {"is_working": False},
     "estimation":     {"is_working": False},
-    "matched_filter": {"is_working": False},
-    "demodulation":   {"is_working": True},
+    "matched_filter": {"is_working": True},
+    "demodulation":   {"is_working": False},
 }
 def plot_num_subplot(plots_data):
 
@@ -125,7 +125,7 @@ def plot_mf(rx_signal, conv_signal, match_signal):
         # rx_signal
         {   
             "title": "rx_signal",
-            "x": np.arange(rx_signal.size) / sps,
+            "x": np.arange(rx_signal.size),
             "y": rx_signal,
             "color": "r",
             "lw": 2,
@@ -134,7 +134,7 @@ def plot_mf(rx_signal, conv_signal, match_signal):
         # conv_signal
         {   
             "title": "conv_signal",
-            "x": np.arange(conv_signal.size) / sps,
+            "x": np.arange(conv_signal.size),
             "y": conv_signal,
             "color": "g",
             "lw": 2,
@@ -191,7 +191,7 @@ def plot_demod(rhh_full, rhh, match_signal, sampled_signal, rx_bits):
          # match_signal
         {   
             "title": "match_signal",
-            "x": np.arange(match_signal.size) / sps,
+            "x": np.arange(match_signal.size),
             "y": match_signal,
             "color": "r",
             "lw": 2,
@@ -280,20 +280,19 @@ def main():
             conv_signal = np.convolve(rx_signal, np.conj(h[::-1]))
             match_signal = conv_signal[int(h.size / 2) - 1: - int(h.size / 2)]
             if plot_params["matched_filter"]["is_working"]:
-                plot_mf(rx_signal, conv_signal, match_signal)
+                plot_mf(rx_signal[:24], conv_signal[:24], match_signal)
 
             # Detector
-            # rhh
             rhh_full = np.convolve(h, np.conj(h))
             center_idx = h.size
             rhh = rhh_full[center_idx :: -detector.detector.sps]
             increment = detector.detector.calc_increment(rhh)
-            sampled_signal = match_signal[:: detector.detector.sps]
+            sampled_signal = match_signal[detector.detector.sps - 1 :: detector.detector.sps]
             trans_table, old_path_metrics = detector.detector.calc_metric(increment, sampled_signal, start_state=0)
             best_stop_state = detector.detector.find_best_stop_state(old_path_metrics)
             rx_bits = detector.detector.traceback(trans_table, best_stop_state)
             if plot_params["demodulation"]["is_working"]:
-                plot_demod(rhh_full, rhh, match_signal, sampled_signal, rx_bits)
+                plot_demod(rhh_full, rhh, np.abs(match_signal[:10]), sampled_signal[:10], rx_bits)
 
             # Deint + decod
             rx_bits = np.append(rx_bits, np.zeros(148 * 8 - 148))
