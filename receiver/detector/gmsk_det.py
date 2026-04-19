@@ -15,8 +15,8 @@ class GMSKDetector:
         self.mf_is_working = block_params["matched_filter"]["is_working"]
 
     def calc_rhh(self, h):
-        rhh_full = np.convolve(h, np.conj(h))
-        center_idx = h.size
+        rhh_full = np.convolve(h, np.conj(h[::-1]))
+        center_idx = h.size - 1
         rhh = rhh_full[center_idx :: - self.sps]
 
         return rhh
