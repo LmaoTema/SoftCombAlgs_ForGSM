@@ -23,10 +23,10 @@ from drawber.berruler import BERRuler
 from drawber.plot import plot_ber
 
 plot_params = {
-    "modulation":     {"is_working": False},
-    "estimation":     {"is_working": False},
+    "modulation":     {"is_working": True},
+    "estimation":     {"is_working": True},
     "matched_filter": {"is_working": True},
-    "demodulation":   {"is_working": False},
+    "demodulation":   {"is_working": True},
 }
 def plot_num_subplot(plots_data):
 
