@@ -180,6 +180,7 @@ class GMSKDetector:
                 else:
                     rhh = self.calc_rhh(h[b])
                     increment = self.calc_increment(rhh)
+                    
             start_idx = b * samples_per_burst
             burst = complex_signal[start_idx : start_idx + 148 * sps]
 

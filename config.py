@@ -12,13 +12,13 @@ block_params = {
     "encoding":       {"is_working": True},
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
-    "channel":        {"is_working": True},
+    "channel":        {"is_working": False},
     "matched_filter": {"is_working": True},
     "equalizer":      {"is_working": True},
 }
 
 BER = {
-    "h2dB_init": -8.0,
+    "h2dB_init": 0.0,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
