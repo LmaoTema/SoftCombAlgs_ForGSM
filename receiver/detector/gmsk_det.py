@@ -17,7 +17,7 @@ class GMSKDetector:
     def calc_rhh(self, h):
         rhh_full = np.convolve(h, np.conj(h))
         center_idx = h.size
-        rhh = rhh_full[center_idx :: self.sps]
+        rhh = rhh_full[center_idx :: - self.sps]
 
         return rhh
 
@@ -180,6 +180,7 @@ class GMSKDetector:
                 else:
                     rhh = self.calc_rhh(h[b])
                     increment = self.calc_increment(rhh)
+                    
             start_idx = b * samples_per_burst
             burst = complex_signal[start_idx : start_idx + 148 * sps]
 

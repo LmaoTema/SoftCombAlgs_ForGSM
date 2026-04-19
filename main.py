@@ -62,6 +62,8 @@ def main():
             x_value = ber_ruler.h2dB
             channel = ChannelBlock(channel_model = channel_model, snr_db = x_value, profile = profile, is_working = block_params["channel"]["is_working"])
         
+        n_errors = 0
+
         while not ber_ruler.is_point_finished():
 
             bits = np.random.randint(0, 2, frame_bits)
@@ -102,6 +104,11 @@ def main():
             
             ber_ruler_uncoded.update_frame(np.asarray(bits_cd), np.asarray(bits_deintr))
             frame_counter += 1
+
+            n_errors += np.sum(np.array(bits) != np.array(decoded_bits))
+            n_frame = 100
+            if frame_counter > n_frame:
+                print(n_errors/frame_counter)
 
         ber_ruler.finalize_point()
         ber_ruler_uncoded.finalize_point()
