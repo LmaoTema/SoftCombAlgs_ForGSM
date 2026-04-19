@@ -4,7 +4,8 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 simulation_params = {
     "channel_type": "TCHFS",
     "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "sweep_mode": "snr"         # "prx"/"snr"
+    "sweep_mode": "snr",        # "prx"/"snr"
+    "processing_mode": "None"   # "None/"Half"/"Full"    
 }
 
 block_params = {
@@ -18,7 +19,7 @@ block_params = {
 }
 
 BER = {
-    "h2dB_init": -8.0,
+    "h2dB_init": 0,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
