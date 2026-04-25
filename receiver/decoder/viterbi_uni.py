@@ -2,10 +2,11 @@ import numpy as np
 
 class ViterbiDecoder:
 
-    def __init__(self, constraint_length, polynomials):
+    def __init__(self, constraint_length, polynomials, mode="vit_hard"):
 
         self.K = constraint_length
         self.polynomials = polynomials
+        self.mode = mode
 
         self.n_outputs = len(polynomials)
         self.n_states = 2 ** (constraint_length - 1)
@@ -52,6 +53,8 @@ class ViterbiDecoder:
     def decode(self, coded_bits):
 
         coded_bits = np.array(coded_bits)
+        coded_bits = np.nan_to_num(coded_bits, nan=0.0, posinf=20.0, neginf=-20.0)
+        coded_bits = np.clip(coded_bits, -20, 20)
 
         n_steps = len(coded_bits) // self.n_outputs
         coded_bits = coded_bits.reshape((n_steps, self.n_outputs))
@@ -77,9 +80,12 @@ class ViterbiDecoder:
                     ns = self.next_state[state, bit]
                     expected = self.output[state, bit]
                     
-                    #expected_sym = 1 - 2*np.array(expected)
-                    #dist = np.sum((r - expected_sym)**2)
-                    dist = np.sum(r != expected)
+                    if self.mode == "vit_hard":
+                        dist = np.sum(r != expected)
+                        
+                    elif self.mode == "vit_soft":
+                        dist = -np.sum((1 - 2*np.array(expected)) * r)
+                        
                     metric = path_metric[state] + dist
 
                     if metric < new_metric[ns]:
@@ -91,7 +97,7 @@ class ViterbiDecoder:
             path_metric = new_metric
 
 
-        state = 0   # GSM encoder terminates to zero state
+        state = np.argmin(path_metric)  #  encoder terminates to zero state
 
         decoded = []
 

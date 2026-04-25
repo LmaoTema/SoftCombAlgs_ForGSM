@@ -19,7 +19,7 @@ block_params = {
 }
 
 BER = {
-    "h2dB_init": 0,
+    "h2dB_init": -5,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
@@ -72,7 +72,7 @@ modulation_params = {
     "T": 3.69e-6,
     "sps": 4,
     "h": 0.5,
-    "gaus_duration": 3,
+    "gaus_duration": 4,
     "rect_duration": 1,
     "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
@@ -83,7 +83,7 @@ equalizer_params = {
 }
 
 channel_params = {
-    "snr_db": 20.0, 
+    
     "temperature": 290.0,       # [К]
     "noise_figure": 7.0,        # [db]
     "bandwidth": 200e3,         # [Hz]

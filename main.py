@@ -28,7 +28,7 @@ def build_pipeline(mode, channel_type, mode_cfg):
     interleaver = Interleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
 
     deinterleaver = Deinterleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
-    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], is_working=block_params["encoding"]["is_working"])
+    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], is_working=block_params["encoding"]["is_working"])
 
     modulator = Modulation(channel_type, modulation_params, is_working=block_params["modulation"]["is_working"])
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])

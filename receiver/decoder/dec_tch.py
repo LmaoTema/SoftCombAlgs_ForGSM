@@ -30,11 +30,11 @@ class CRC5350Decoder:
     
 class TCHFSDecoder:
 
-    def __init__(self):
+    def __init__(self, vit_mode="vit_hard"):
 
         self.viterbi = ViterbiDecoder(
             constraint_length=5,
-            polynomials=[0x13, 0x1B]
+            polynomials=[0x13, 0x1B], mode=vit_mode
         )
 
         self.crc = CRC5350Decoder()

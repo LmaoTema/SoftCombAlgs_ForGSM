@@ -185,6 +185,8 @@ class BERRuler:
 
         self._update_snr_step()
         self.reset()
+        if self.enable_log:
+            print()
 
     def _update_snr_step(self):
         x_values = self.h2dBs if self.sweep_mode == "snr" else self.prx_dbms
