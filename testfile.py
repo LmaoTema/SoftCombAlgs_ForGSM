@@ -331,3 +331,76 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+    # ###### check compare with signal_envelope
+    # phase_accum = np.cumsum(alpha) * (np.pi / 2)
+    # alpha_rotate = np.exp(1j * phase_accum)
+
+    # sig_len = alpha.size * self.sps + h.size
+    # signal_envelope_linear = np.zeros(sig_len, dtype=complex)
+
+    # for i in range(alpha.size):
+    #     start = i * self.sps
+    #     end = start + h.size
+    #     # Накладываем импульс h, взвешенный символом a_n, на общую временную ось
+    #     signal_envelope_linear[start : end] += alpha_rotate[i] * h
+
+    # signal_envelope_linear_shift = signal_envelope_linear[9:592+9]
+    
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.grid()
+    # plt.title("$Re[s_l(t)]$", fontsize=20)
+    # plt.xlabel("tap", fontsize=16)
+    # plt.ylabel("A", fontsize=16)
+    # plt.plot(np.arange(592), np.real(signal_envelope), lw=3, label = "True GMSK")
+    # plt.plot(np.arange(592), np.real(signal_envelope_linear_shift), lw=3, label = "Linearised GMSK")
+
+    # plt.figure()
+    # plt.grid()
+    # plt.title("$Im[s_l(t)]$", fontsize=20)
+    # plt.xlabel("tap", fontsize=16)
+    # plt.ylabel("A", fontsize=16)
+    # plt.plot(np.arange(592), np.imag(signal_envelope), lw=3, label = "True GMSK")
+    # plt.plot(np.arange(592), np.imag(signal_envelope_linear_shift), lw=3, label = "Linearised GMSK")
+
+    # plt.figure()
+    # plt.grid()
+    # plt.title("$|s_l(t)|$", fontsize=20)
+    # plt.xlabel("tap", fontsize=16)
+    # plt.ylabel("A", fontsize=16)
+    # plt.plot(np.arange(592), np.abs(signal_envelope), lw=3, label = "True GMSK")
+    # plt.plot(np.arange(592), np.abs(signal_envelope_linear_shift), lw=3, label = "Linearised GMSK")
+
+    # error = signal_envelope_linear_shift - signal_envelope
+    # mse = np.mean(np.abs(error)**2)
+    # rmse = np.sqrt(mse)
+
+    # print(f"СКО ошибки аппроксимации: {rmse:.5f}")
+    # #####
+
+
+
+    # ###### check in calc_q
+    # L = gaus_duration + rect_duration
+    # # Функция S(t), состояющая из 2х частей 
+    # s_increas = np.sin(np.pi / 2 * q_gmsk_oversampling)
+    # s_decreas = np.sin(np.pi / 2 - np.pi / 2 * q_gmsk_oversampling)
+    # s = np.concatenate([s_increas, s_decreas, np.zeros(2)])
+
+    # # Формируем основную компоненту разложения Лорана
+    # # Учитываем, что L - длина ИХ, а не глубина МСИ
+    # c_0 = np.ones((L + 1) * sps_oversampling)
+    # for i in range((L + 1) * sps_oversampling):
+    #     for j in range(L):
+    #         c_0[i] *= s[i + j * sps_oversampling]
+
+    # # В случае АБГШ c_0 - импульсная характеристика композитного канала
+    # c_0_trunc = c_0[int(sps_oversampling / 2) : - int(sps_oversampling / 2)]
+    # c_0_trunc = c_0
+    # h = c_0_trunc[::oversampling]
+
+    # return q_gmsk, h
