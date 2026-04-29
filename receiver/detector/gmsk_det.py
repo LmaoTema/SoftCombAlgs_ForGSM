@@ -201,7 +201,6 @@ class GMSKDetector:
                 else:
                     rhh = self.calc_rhh(h[b])
                     increment = self.calc_increment(rhh)
-                    # increment = np.zeros(16)
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]
