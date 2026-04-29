@@ -17,14 +17,18 @@ class MatchedFilter(Block):
         match_signal = []
 
         for b in range(num_bursts):
+            # Разные оценки h для разных пакетов
             h_est = h[b]
             start_idx = b * samples_per_burst
             end_idx = (b + 1) * samples_per_burst
     
             rx_burst = rx_signal[start_idx  : end_idx]
 
+            # Свертка сигнала с ИХ СФ 
             burst_match = np.convolve(rx_burst, np.conj(h_est[::-1]))
+            # Убираем задержку от СФ. Пик на конце символьного интервала 
             burst_trunc = burst_match[int(h_est.size / 2) - 1: - int(h_est.size / 2)]
+            # Склеиваем все пакеты
             match_signal.append(burst_trunc)
 
         return np.concatenate(match_signal)

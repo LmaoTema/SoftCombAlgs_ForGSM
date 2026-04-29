@@ -41,11 +41,11 @@ class GMSKModulation:
             raise ValueError("Количество модуляционных бит должно быть кратным 148")
 
         # Создаем сдвинутую на 1 отсчет последовательность бит 
-        d_prev = np.ones(bits.size, dtype=int)
-        d_prev[1:] = bits[:-1]
+        bits_previous = np.zeros(bits.size, dtype=int)
+        bits_previous[1:] = bits[:-1]
 
         # Диф.кодирование
-        d_curr = bits ^ d_prev
+        d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
 
         return alpha

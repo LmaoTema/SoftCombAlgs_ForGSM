@@ -7,7 +7,6 @@ class Block:
         if not self.is_working:
             return args[0]
 
-
         return self._process(*args)
     
     def _process(self, *args):

@@ -54,15 +54,15 @@ class Pipeline:
             decoded = self.decoder.process(llr)
 
             return decoded
-
+        
+        # Получаем оценку композитного канала
         h = self.estimator.process(rx_signal, tx_signal)
-
+        # Деротируем сигнал и пропускаем через СФ
         mf = self.matched_filter.process(rx_signal, h)
-
+        # Эквалайзер (Если работаем не по MLSE)
         eq = self.equalizer.process(mf, h)
-
+        # Детектор
         llr = self.detector.process(eq, h)  
-
 
         if self.mode == ProcessingMode.FULL:
 

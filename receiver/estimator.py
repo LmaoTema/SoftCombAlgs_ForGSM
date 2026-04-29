@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from transmitter.modulator import GMSKModulation
 class ChannelEstimate():
 
     def __init__(self, modulation_params, simulation_params):
@@ -13,7 +13,16 @@ class ChannelEstimate():
         self.L = (self.gaus_duration + self.rect_duration)
 
         self.channel_model = simulation_params.get("channel_model", "awgn")
-
+        self.force_training_estimation_awgn = simulation_params.get(
+            "force_training_estimation_awgn", False
+        )
+        self.h = modulation_params.get("h", 0.5)
+        self.est_channel_len_sps = modulation_params.get(
+            "est_channel_len_sps", 5 * self.sps
+        )
+        self.estimator_reg = modulation_params.get("estimator_reg", 1e-2)
+        self.debug_first_burst = modulation_params.get("debug_first_burst", True)
+    
     # h(t) композитного фильтра (передатчик + канал)
     def h_awgn(self):
         BT = self.BT
@@ -63,82 +72,104 @@ class ChannelEstimate():
 
         return h_norm
 
-    #def h_rayleigh(self, rx_burst, tx_burst):
-        L_sps = self.L * self.sps
-        train_start = 61 * self.sps
-        train_end = 87 * self.sps
+    def build_reference_burst_waveform(self, burst_active_bits):
+            mod = GMSKModulation({
+                "BT": self.BT,
+                "T": self.T,
+                "sps": self.sps,
+                "h": self.h,
+                "gaus_duration": self.gaus_duration,
+                "rect_duration": self.rect_duration,
+            })
 
-        tx_train = tx_burst[train_start: train_end]
-        rx_train = rx_burst[train_start : train_end]
-
-        N = len(tx_train)
-        X = np.zeros((N - L_sps, L_sps), dtype=complex)
-
-        for i in range(N - L_sps):
-            X[i] = tx_train[i:i + L_sps]
-
-        y = rx_train[L_sps:]
-
-        h = np.linalg.lstsq(X, y, rcond=None)[0]
-
-        return h
+            tx_ref = mod.process_mod(np.asarray(burst_active_bits, dtype=int))
+            return tx_ref
     
-    def h_rayleigh(self, rx_burst, tx_burst):
+    def h_rayleigh(self, rx_burst, tx_ref_burst, debug=False, title_prefix=""):
         sps = self.sps
-        L_sps = 2 * sps   
+        train_bit_start = 61
+        train_bit_end = 87   # не включая 87, всего 26 бит
 
-        train_start = 61 * sps
-        train_end = 87 * sps
+        # запас по памяти сигнала для учёта МСИ
+        mem_bits = self.L
+        # перевод границ из бит в отсчёты с расширением окна
+        train_start = (train_bit_start - mem_bits) * sps
+        train_end = (train_bit_end + mem_bits) * sps
 
-        tx_train = tx_burst[train_start:train_end]
-        rx_train = rx_burst[train_start:train_end]
+        # выделение участка тренировочной последовательности 
+        rx_train = np.asarray(rx_burst[train_start:train_end], dtype=np.complex128)
+        tx_train = np.asarray(tx_ref_burst[train_start:train_end], dtype=np.complex128)
 
-        corr = np.correlate(rx_train, tx_train, mode='full')
-        delay = np.argmax(np.abs(corr)) - len(tx_train) + 1
+        # оценка delay по корреляции 
+        corr = np.correlate(rx_train, tx_train, mode="full") # вычисляет полную взаимную корреляцию входных данных
+        delay = np.argmax(np.abs(corr)) - len(tx_train) + 1 
 
+        # Выравнивание 
         if delay > 0:
-            rx_train = rx_train[delay:]
+            rx_train_aligned = rx_train[delay:]
+            tx_train_aligned = tx_train[:len(rx_train_aligned)]
         else:
-            tx_train = tx_train[-delay:]
+            tx_train_aligned = tx_train[-delay:]
+            rx_train_aligned = rx_train[:len(tx_train_aligned)]
 
-        min_len = min(len(tx_train), len(rx_train))
-        tx_train = tx_train[:min_len]
-        rx_train = rx_train[:min_len]
+        N = min(len(tx_train_aligned), len(rx_train_aligned))
+
+        L_sps = self.est_channel_len_sps
+
+        # y[n] = sum_k h[k] x[n-k] 
+        rows = N - L_sps + 1 # количество строк в матрице
+        X = np.zeros((rows, L_sps), dtype=np.complex128)
+
+        for i in range(rows):
+            seg = tx_train_aligned[i:i + L_sps] # выделение окна в tx_train длиной L_sps
+            X[i, :] = seg[::-1] # переворот окна для свертки
+
+        y = rx_train_aligned[L_sps - 1:] 
+
+        reg = self.estimator_reg
+        A = X.conj().T @ X + reg * np.eye(L_sps, dtype=np.complex128)
+        b = X.conj().T @ y
+        h = np.linalg.solve(A, b)
+
+        if debug:
+
+            y_hat_full = np.convolve(tx_train_aligned, h, mode="full")
+            y_hat = y_hat_full[:len(rx_train_aligned)]
+
+            fig, ax = plt.subplots(2, 1, figsize=(11, 8))
+
+            ax[0].stem(np.arange(len(h)), np.abs(h))
+            ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
+            ax[0].set_xlabel('Tap index')
+            ax[0].set_ylabel('|h_est|')
+            ax[0].grid(True)
+
+            ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
+            ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
+            ax[1].set_xlabel('Sample index')
+            ax[1].set_ylabel('Magnitude')
+            ax[1].legend()
+            ax[1].grid(True)
+
+            plt.tight_layout()
+            plt.show()
+
+            print("train_start =", train_start, "train_end =", train_end)
+            print("len(tx_train_aligned) =", len(tx_train_aligned))
+            print("len(rx_train_aligned) =", len(rx_train_aligned))
+            print("h_est =", h)
 
 
-        #plt.figure()
-        #plt.plot(np.real(tx_train), label="TX")
-        #plt.plot(np.real(rx_train), label="RX")
-        #plt.legend()
-        #plt.title("TX vs RX (aligned)")
-        #plt.grid()
-        #plt.show()
-        
-        N = len(tx_train)
-
-        X = np.zeros((N - L_sps + 1, L_sps), dtype=complex)
-        for i in range(N - L_sps + 1):
-            X[i] = tx_train[i:i + L_sps]
-
-        y = rx_train[L_sps - 1:]
-
-        h = np.linalg.inv(X.conj().T @ X + 1e-1 * np.eye(L_sps)) @ X.conj().T @ y
-
-        #plt.stem(np.abs(h))
-        #plt.title("Estimated channel impulse response")
-        #plt.show()
-        
         return h
 
     def process(self, rx_signal, tx_signal):
-        
-        if self.channel_model == "awgn":
-            h_est = self.h_awgn()
-       
         samples_per_burst = 156 * self.sps
         num_bursts = len(rx_signal) // samples_per_burst
-
         h_list = []
+
+        use_closed_form_awgn = (
+            self.channel_model == "awgn" and not self.force_training_estimation_awgn
+        )
 
         for b in range(num_bursts):
             start_idx = b * samples_per_burst
@@ -147,11 +178,26 @@ class ChannelEstimate():
             rx_burst = rx_signal[start_idx:end_idx]
             tx_burst = tx_signal[start_idx:end_idx]
 
-            if self.channel_model != "awgn":
-                h_est = self.h_rayleigh(rx_burst, tx_burst)
+            if use_closed_form_awgn:
+                h_est = self.h_awgn()
+            else:
+                debug_flag = self.debug_first_burst and (b == 0)
+
+                if self.channel_model == "awgn":
+                    h_est = self.h_rayleigh(
+                        rx_burst,
+                        tx_burst,
+                        debug=debug_flag,
+                        title_prefix="AWGN: "
+                    )
+                else:
+                    h_est = self.h_rayleigh(
+                        rx_burst,
+                        tx_burst,
+                        debug=debug_flag,
+                        title_prefix="Rayleigh: "
+                    )
 
             h_list.append(h_est)
 
         return h_list
-
-            
