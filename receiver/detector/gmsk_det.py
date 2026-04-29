@@ -1,5 +1,4 @@
 import numpy as np
-from .vit_detector_osmo import calc_increment_osmo, calc_metric_osmo, find_best_stop_state_osmo, traceback_osmo
 
 class GMSKDetector:
     def __init__(self, params, block_params):
