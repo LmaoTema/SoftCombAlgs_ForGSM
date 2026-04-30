@@ -1,4 +1,5 @@
 import numpy as np
+from config import block_params
 
 
 class ProcessingMode:
@@ -35,6 +36,12 @@ class Pipeline:
         coded = self.encoder.process(bits.tolist())
         coded = self.interleaver.process(coded)
 
+        for i in range (10):
+            print(i, coded[i])
+
+        for i in range (142,147):
+            print(i, coded[i])
+
         tx_signal = self.modulator.process(np.array(coded))
 
         return tx_signal
@@ -59,10 +66,12 @@ class Pipeline:
         h = self.estimator.process(rx_signal, tx_signal)
         # Деротируем сигнал и пропускаем через СФ
         mf = self.matched_filter.process(rx_signal, h)
-        # Эквалайзер (Если работаем не по MLSE)
-        eq = self.equalizer.process(mf, h)
-        # Детектор
-        llr = self.detector.process(eq, h)  
+
+        # Детектор c шумом
+        llr = self.detector.process(mf, h)
+        # Детектор без шума
+        block_params["channel"]["is_working"] = False
+        lrr_2 = self.detector.process(mf, h)
 
         if self.mode == ProcessingMode.FULL:
 

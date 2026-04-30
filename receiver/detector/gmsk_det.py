@@ -1,4 +1,6 @@
 import numpy as np
+import csv
+from config import block_params
 
 class GMSKDetector:
     def __init__(self, params, block_params):
@@ -11,6 +13,8 @@ class GMSKDetector:
         self.type_demod = params.get("type_demod", "diff_phase") # diff_phase / vit_hard / vit_soft 
 
         self.mf_is_working = block_params["matched_filter"]["is_working"]
+
+        self.counter = 0
 
     def calc_rhh(self, h):
         rhh_full = np.convolve(h, np.conj(h[::-1]))
@@ -45,6 +49,17 @@ class GMSKDetector:
         return increment
 
     def calc_metric(self, increment, sampled_signal, start_state):
+        if (increment == np.zeros(16)).all():
+            if block_params["channel"]["is_working"] == False:
+                name = 'res_without_channel_without_increment.csv'
+            else:
+                name = 'res_with_channel_without_increment.csv'
+        else:
+            if block_params["channel"]["is_working"] == False:
+                name = 'res_without_channel_with_increment.csv'
+            else:
+                name = 'res_with_channel_with_increment.csv'
+
         # Расчет метрик для всех возможных состояний
         old_path_metrics = np.ones(16) * -1e30
         old_path_metrics[start_state] = 0.0
@@ -58,6 +73,8 @@ class GMSKDetector:
         # Знак для деротации:
         # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
         sign_rotate = 1
+
+        data_to_save = []
 
         while sample_nr < samples_num:
             
@@ -92,8 +109,25 @@ class GMSKDetector:
             tmp = new_path_metrics
             new_path_metrics = old_path_metrics
             old_path_metrics = tmp
+            
+            if sample_nr < 8 or sample_nr > 143:
+                if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
+                    print('______________________')
+                    print('number bit = ', sample_nr)
+                    for i in range (16):
+                        formatted_metric = f"{old_path_metrics[i]:.3f}"      
+                        data_to_save.append([sample_nr, i,  formatted_metric])
+
+                if sample_nr == 147:
+                    self.counter +=1
 
             sample_nr += 1
+
+        if ((self.counter % 16) == 1) or ((self.counter % 16) == 2):
+            with open(name, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f, delimiter=';') 
+                writer.writerow(['Number bit', 'State', 'Metric'])
+                writer.writerows(data_to_save)
 
         return trans_table, old_path_metrics
     
@@ -204,8 +238,13 @@ class GMSKDetector:
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]
-                # Строим решетку
+
+                # Строим решетку с инкрменетами
                 trans_table, old_path_metrics = self.calc_metric(increment, sampled_burst, start_state=0)
+                # Строим решетку без инкрменетов
+                trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
+
+
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
                 # Проходимся от конца к началу по выстроенной решетке
