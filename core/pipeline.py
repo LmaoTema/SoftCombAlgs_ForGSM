@@ -69,9 +69,11 @@ class Pipeline:
 
         # Детектор c шумом
         llr = self.detector.process(mf, h)
-        # Детектор без шума
+
+        # # Детектор без шума
         block_params["channel"]["is_working"] = False
-        lrr_2 = self.detector.process(mf, h)
+        mf_without = self.matched_filter.process(tx_signal, h)
+        lrr_2 = self.detector.process(mf_without, h)
 
         if self.mode == ProcessingMode.FULL:
 

@@ -61,8 +61,6 @@ def main():
     ber_ruler = BERRuler(**BER, channel_type=channel_type, sweep_mode=sweep_mode)
     ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, enable_log=False)
 
-    flag_channel = 0
-
     while not ber_ruler.isStop:
         if sweep_mode == "prx":
             x_value = ber_ruler.prx_dbm
