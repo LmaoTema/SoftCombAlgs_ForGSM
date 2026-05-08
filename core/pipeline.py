@@ -73,10 +73,14 @@ class Pipeline:
         h = self.estimator.process(rx_samples, tx_signal, channel_state = channel_state)
         # Деротируем сигнал и пропускаем через СФ
         mf = self.matched_filter.process(rx_samples, h)
-        # Эквалайзер (Если работаем не по MLSE)
-        eq = self.equalizer.process(mf, h)
-        # Детектор
-        llr = self.detector.process(eq, h)  
+
+        # Детектор c шумом
+        llr = self.detector.process(mf, h)
+
+        # # Детектор без шума
+        block_params["channel"]["is_working"] = False
+        mf_without = self.matched_filter.process(rx_samples, h)
+        lrr_2 = self.detector.process(mf_without, h)
 
         if self.mode == ProcessingMode.FULL:
 

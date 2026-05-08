@@ -49,16 +49,18 @@ class GMSKDetector:
         return increment
 
     def calc_metric(self, increment, sampled_signal, start_state):
-        if (increment == np.zeros(16)).all():
-            if block_params["channel"]["is_working"] == False:
-                name = 'res_without_channel_without_increment.csv'
-            else:
-                name = 'res_with_channel_without_increment.csv'
-        else:
-            if block_params["channel"]["is_working"] == False:
-                name = 'res_without_channel_with_increment.csv'
-            else:
-                name = 'res_with_channel_with_increment.csv'
+        # if (increment == np.zeros(16)).all():
+        #     if block_params["channel"]["is_working"] == False:
+        #         name = 'res_without_channel_without_increment.csv'
+        #     else:
+        #         name = 'res_with_channel_without_increment.csv'
+        # else:
+        #     if block_params["channel"]["is_working"] == False:
+        #         name = 'res_without_channel_with_increment.csv'
+        #     else:
+        #         name = 'res_with_channel_with_increment.csv'
+
+        name = 'res_ch_incr'
 
         # Расчет метрик для всех возможных состояний
         old_path_metrics = np.ones(16) * -1e30
@@ -110,7 +112,12 @@ class GMSKDetector:
             new_path_metrics = old_path_metrics
             old_path_metrics = tmp
             
+            # Первые 8 и последние записываем в data_to_save
             if sample_nr < 8 or sample_nr > 143:
+                # Прогоняем для каждого берста решетку с инкрементами и без них
+                # Учитываем, что счетчик один на разные потоки. Поэтому смотрим (х % 16)
+                # Интересует только первый берст (с и без инкрментами) каждого потока.
+                # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
                 if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
                     print('______________________')
                     print('number bit = ', sample_nr)
@@ -123,6 +130,8 @@ class GMSKDetector:
 
             sample_nr += 1
 
+        # запись листа в csv
+        # так как в counter добавили 1, то и проверки сдвинулись на 1
         if ((self.counter % 16) == 1) or ((self.counter % 16) == 2):
             with open(name, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';') 
@@ -241,8 +250,9 @@ class GMSKDetector:
 
                 # Строим решетку с инкрменетами
                 trans_table, old_path_metrics = self.calc_metric(increment, sampled_burst, start_state=0)
-                # Строим решетку без инкрменетов
-                trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
+
+                # # Строим решетку без инкрменетов
+                # trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
 
 
                 # Находим наиболее вероятное последнее состояние 
