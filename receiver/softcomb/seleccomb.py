@@ -15,8 +15,7 @@ class SCCombiner:
 
         combined_hard = hards[best_idx, idx]
         combined_reliability = reliabilities[best_idx, idx]
+        
+        combined_llr = combined_hard * combined_reliability
 
-        return {
-            'hard': combined_hard,
-            'reliability': combined_reliability
-        }
+        return combined_llr

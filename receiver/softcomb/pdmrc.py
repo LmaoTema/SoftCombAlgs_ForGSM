@@ -2,6 +2,7 @@ import numpy as np
 
 
 class PDMRCCombiner:
+    
     def combine(self, sector_soft_list):
         if len(sector_soft_list) < 2:
             raise ValueError("PDMRC требует минимум 2 сектора")
@@ -21,7 +22,6 @@ class PDMRCCombiner:
 
         combined_reliability = np.abs(metric)
 
-        return {
-            'hard': combined_hard,
-            'reliability': combined_reliability
-        }
+        combined_llr = combined_hard * combined_reliability
+        
+        return combined_llr

@@ -162,7 +162,7 @@ class ChannelEstimate():
 
         return h
 
-    def process(self, rx_signal, tx_signal):
+    def process(self, rx_signal, tx_signal, channel_state = None):
         samples_per_burst = 156 * self.sps
         num_bursts = len(rx_signal) // samples_per_burst
         h_list = []

@@ -42,40 +42,55 @@ def build_pipeline(mode, channel_type, mode_cfg):
 
     combiner = None
 
-    channel = ChannelBlock(channel_model=simulation_params["channel_model"], profile=channel_params.get("profile", "TU"),is_working=block_params["channel"]["is_working"])
+    channel = ChannelBlock(
+        channel_model = simulation_params["channel_model"], 
+        profile = channel_params.get("profile", "TU"),
+        is_working = block_params["channel"]["is_working"],
+    )
 
     return Pipeline(mode=mode,encoder=encoder, interleaver=interleaver,modulator=modulator,
-        channel=channel, estimator=estimator, matched_filter=matched_filter, equalizer=equalizer,
+        channel = channel, estimator=estimator, matched_filter=matched_filter, equalizer=equalizer,
         detector=detector, deinterleaver=deinterleaver, decoder=decoder, soft_llr_generator=soft_llr_generator, combiner=combiner)
 
 def main():
 
     channel_type = simulation_params["channel_type"]
-    sweep_mode = simulation_params.get("sweep_mode", "snr")
+    axis_metric = simulation_params.get("x_axis_metric", simulation_params.get("sweep_mode", "dbm"))
     mode_cfg = mode_params[channel_type]
     frame_bits = mode_cfg["frame_bits"]
 
-    mode = ProcessingMode.FULL 
+    mode = ProcessingMode.FULL
     pipeline = build_pipeline(mode, channel_type, mode_cfg)
 
-    ber_ruler = BERRuler(**BER, channel_type=channel_type, sweep_mode=sweep_mode)
-    ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, enable_log=False)
+    ber_ruler = BERRuler(**BER, channel_type = channel_type, axis_metric = axis_metric)
+    ber_ruler_uncoded = BERRuler(**BER, channel_type = channel_type,  axis_metric = axis_metric, enable_log = False)
 
     while not ber_ruler.isStop:
-        if sweep_mode == "prx":
-            x_value = ber_ruler.prx_dbm
-            pipeline.channel.signal_power = x_value
-        else:
-            x_value = ber_ruler.h2dB
-            pipeline.channel.snr_db = x_value
-
+        x_value = ber_ruler.prx_dbm
+        pipeline.channel.set_signal_power(x_value)
+        
         while not ber_ruler.is_point_finished():
 
             bits = np.random.randint(0, 2, frame_bits)
-            tx_signal = pipeline.tx(bits)
-            rx_signal = pipeline.channel_pass(tx_signal)
-            decoded_bits = pipeline.rx(rx_signal, tx_signal)
-            ber_ruler.update_frame(bits, decoded_bits)
+            coded_bits = pipeline.encoder.process(bits.tolist())
+            interleaved_bits = np.array(pipeline.interleaver.process(coded_bits))
+            tx_signal = pipeline.modulator.process(interleaved_bits)
+            tx_burst_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
+            
+            rx_output = pipeline.channel_pass(tx_signal)
+            decoded_bits = pipeline.rx(rx_output, tx_signal)
+            ber_ruler.update_frame(bits, decoded_bits, channel_output = rx_output)
+
+            rx_samples, channel_state, _ = pipeline._unwrap_channel_output(rx_output)
+            h = pipeline.estimator.process(rx_samples, tx_signal, channel_state = channel_state)
+            mf = pipeline.matched_filter.process(rx_samples, h)
+            eq = pipeline.equalizer.process(mf, h)
+            detected_burst_bits = pipeline.detector.process(eq, h)
+
+            if len(tx_burst_bits) != len(detected_burst_bits):
+                raise ValueError(f"Uncoded BER length mismatch: tx={len(tx_burst_bits)}, rx={len(detected_burst_bits)}")
+
+            ber_ruler_uncoded.update_frame(tx_burst_bits, detected_burst_bits, channel_output = rx_output)
 
         ber_ruler.finalize_point()
         ber_ruler_uncoded.finalize_point()
@@ -85,9 +100,16 @@ def main():
 
     x_value = res_coded["x"]
 
-    plot_ber(x_value, res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type,sweep_mode=sweep_mode )
+    plot_ber(
+        x_value, 
+        res_coded["results"], 
+        uncoded_results = res_uncoded["results"], 
+        channel_type = channel_type,
+        axis_metric = axis_metric,
+    )
 
     return x_value, res_coded["results"], res_uncoded["results"]
 
 if __name__ == "__main__":
     main()
+    

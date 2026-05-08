@@ -80,7 +80,7 @@ class ViterbiDecoder:
                     ns = self.next_state[state, bit]
                     expected = self.output[state, bit]
                     
-                    if self.mode == "vit_hard":
+                    if self.mode == "vit_hard" or self.mode == "diff_phase":
                         dist = np.sum(r != expected)
                         
                     elif self.mode == "vit_soft":

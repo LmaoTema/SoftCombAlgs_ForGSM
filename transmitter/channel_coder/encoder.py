@@ -1,13 +1,13 @@
 import numpy as np
 from core.block import Block
 
-     #class for conv enc logic
+     
 class ConvolutionalEncoder(Block):
 
     def __init__(self, G, K):
         
-       # G - generator polynomials
-       # K - constraint length
+       # G - генеративные полиномы
+       # K - кодовое ограничение
         
         self.G = G
         self.K = K
@@ -23,7 +23,7 @@ class ConvolutionalEncoder(Block):
             val = 0
             for r, g_bit in zip(reg, g):
                 if g_bit:
-                    val ^= r
+                    val ^= r # XOR операция 
 
             out.append(val)
 
