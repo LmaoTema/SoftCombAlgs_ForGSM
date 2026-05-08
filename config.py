@@ -3,8 +3,8 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "TCHFS",
-    "channel_model": "rayleigh_multipath",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "x_axis_metric": "ebn0_db",     # "dbm" / "snr_db" / "ebn0_db"
+    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "x_axis_metric": "snr_db",     # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode": "None"   # "None/"Half"/"Full"    
 }
 
@@ -12,17 +12,17 @@ block_params = {
     "encoding":       {"is_working": True},
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
-    "channel":        {"is_working": True},
-    "matched_filter": {"is_working": False},
-    "equalizer":      {"is_working": False},
+    "channel":        {"is_working": False},
+    "matched_filter": {"is_working": True},
+    "equalizer":      {"is_working": True},
 }
 
 BER = {
-    "h2dB_init": 0,
+    "h2dB_init": 100,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
-    "h2dB_max": 20.0,
+    "h2dB_max": 100,
     
     "prx_dbm_init": -118.0,
     "prx_dbm_init_step": 2.0,
@@ -127,4 +127,3 @@ channel_params = {
     "sample_rate": DERIVED_SAMPLE_RATE_HZ,
     "doppler": 100,
 }
-

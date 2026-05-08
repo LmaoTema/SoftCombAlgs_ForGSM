@@ -14,7 +14,7 @@ class ChannelEstimate():
 
         self.channel_model = simulation_params.get("channel_model", "awgn")
         self.force_training_estimation_awgn = simulation_params.get(
-            "force_training_estimation_awgn", True
+            "force_training_estimation_awgn", False
         )
         self.h = modulation_params.get("h", 0.5)
         self.est_channel_len_sps = modulation_params.get(
