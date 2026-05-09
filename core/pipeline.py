@@ -48,12 +48,12 @@ class Pipeline:
             return rx_signal.signal, rx_signal.channel_state, rx_signal
         return rx_signal, None, None
     
-    def rx(self, rx_signal, tx_signal=None):
-        rx_samples, channel_state, _ = self._unwrap_channel_output(rx_signal)
+    def rx(self, rx_result, tx_signal=None):
+        rx_signal, channel_state, _ = self._unwrap_channel_output(rx_result)
         
         if self.mode == ProcessingMode.HALF:
 
-            llr = self.soft_llr_generator.process(rx_samples)
+            llr = self.soft_llr_generator.process(rx_signal)
 
             if self.combiner is not None:
                 llr = self.combiner.process(llr)
@@ -63,9 +63,9 @@ class Pipeline:
             return decoded
         
         # Получаем оценку композитного канала
-        h = self.estimator.process(rx_samples, tx_signal, channel_state = channel_state)
+        h = self.estimator.process(rx_signal, tx_signal, channel_state = channel_state)
         # Деротируем сигнал и пропускаем через СФ
-        mf = self.matched_filter.process(rx_samples, h)
+        mf = self.matched_filter.process(rx_signal, h)
         # Эквалайзер (Если работаем не по MLSE)
         eq = self.equalizer.process(mf, h)
         # Детектор

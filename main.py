@@ -70,18 +70,22 @@ def main():
         pipeline.channel.set_signal_power(x_value)
         
         while not ber_ruler.is_point_finished():
-
+            # Передатчик (стоит вернуть в pipline.tx)
             bits = np.random.randint(0, 2, frame_bits)
             coded_bits = pipeline.encoder.process(bits.tolist())
             interleaved_bits = np.array(pipeline.interleaver.process(coded_bits))
             tx_signal = pipeline.modulator.process(interleaved_bits)
             tx_burst_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
             
-            rx_output = pipeline.channel_pass(tx_signal)
-            decoded_bits = pipeline.rx(rx_output, tx_signal)
-            ber_ruler.update_frame(bits, decoded_bits, channel_output = rx_output)
+            # Канал
+            rx_result = pipeline.channel_pass(tx_signal)
 
-            rx_samples, channel_state, _ = pipeline._unwrap_channel_output(rx_output)
+            # Приемник
+            decoded_bits = pipeline.rx(rx_result, tx_signal)
+            ber_ruler.update_frame(bits, decoded_bits, channel_output = rx_result)
+
+            # Построение uncoded ber (стоит запихать в pipeline)
+            rx_samples, channel_state, _ = pipeline._unwrap_channel_output(rx_result)
             h = pipeline.estimator.process(rx_samples, tx_signal, channel_state = channel_state)
             mf = pipeline.matched_filter.process(rx_samples, h)
             eq = pipeline.equalizer.process(mf, h)
@@ -90,7 +94,7 @@ def main():
             if len(tx_burst_bits) != len(detected_burst_bits):
                 raise ValueError(f"Uncoded BER length mismatch: tx={len(tx_burst_bits)}, rx={len(detected_burst_bits)}")
 
-            ber_ruler_uncoded.update_frame(tx_burst_bits, detected_burst_bits, channel_output = rx_output)
+            ber_ruler_uncoded.update_frame(tx_burst_bits, detected_burst_bits, channel_output = rx_result)
 
         ber_ruler.finalize_point()
         ber_ruler_uncoded.finalize_point()
