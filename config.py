@@ -3,7 +3,7 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "TCHFS",
-    "channel_model": "rayleigh_multipath",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "x_axis_metric": "ebn0_db",     # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode": "None"   # "None/"Half"/"Full"    
 }

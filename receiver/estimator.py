@@ -136,28 +136,28 @@ class ChannelEstimate():
             y_hat_full = np.convolve(tx_train_aligned, h, mode="full")
             y_hat = y_hat_full[:len(rx_train_aligned)]
 
-            fig, ax = plt.subplots(2, 1, figsize=(11, 8))
+            #fig, ax = plt.subplots(2, 1, figsize=(11, 8))
 
-            ax[0].stem(np.arange(len(h)), np.abs(h))
-            ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
-            ax[0].set_xlabel('Tap index')
-            ax[0].set_ylabel('|h_est|')
-            ax[0].grid(True)
+            #ax[0].stem(np.arange(len(h)), np.abs(h))
+            #ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
+            # ax[0].set_xlabel('Tap index')
+            # ax[0].set_ylabel('|h_est|')
+            # ax[0].grid(True)
 
-            ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
-            ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
-            ax[1].set_xlabel('Sample index')
-            ax[1].set_ylabel('Magnitude')
-            ax[1].legend()
-            ax[1].grid(True)
+            # ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
+            # ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
+            # ax[1].set_xlabel('Sample index')
+            # ax[1].set_ylabel('Magnitude')
+            # ax[1].legend()
+            # ax[1].grid(True)
 
-            plt.tight_layout()
-            plt.show()
+            # plt.tight_layout()
+            # plt.show()
 
-            print("train_start =", train_start, "train_end =", train_end)
-            print("len(tx_train_aligned) =", len(tx_train_aligned))
-            print("len(rx_train_aligned) =", len(rx_train_aligned))
-            print("h_est =", h)
+            # print("train_start =", train_start, "train_end =", train_end)
+            # print("len(tx_train_aligned) =", len(tx_train_aligned))
+            # print("len(rx_train_aligned) =", len(rx_train_aligned))
+            # print("h_est =", h)
 
 
         return h

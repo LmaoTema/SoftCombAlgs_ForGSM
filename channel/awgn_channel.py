@@ -89,7 +89,7 @@ class _PowerMath():
     # Измерение мощности сигнала через среднее от квадрата модуля
     def measure_signal_power_watt(self, x):
         x = self.as_complex_array(x)
-        if x.size == 0:
+        if x.size == 0:                         # проверяем пустой ли массив
             return 0.0
         return float(np.mean(np.abs(x) ** 2))
 
@@ -204,7 +204,7 @@ class AWGNChannel(_PowerMath):
         return aliases[normalized]
 
     def process(self, x):
-        x = self.as_complex_array(x)
+        x = self.as_complex_array(x)                    # приводит входной сигнал к комплексному массиву
         noise_power_watt = self.noise_power_watt()      # cчитает ожидаемую мощность шума
-        noise = self.generate_complex_noise(x.shape)    # создаёт случайную реализацию AWGN
+        noise = self.generate_complex_noise(x.shape)    # создаёт случайную реализацию AWGN (задает шумовой массив такой же как и сигнал, чтобы можно было сложить его с сигналом поэлементно)
         return x + noise, noise_power_watt              # возвращает зашумлённый сигнал и значение шумовой мощности

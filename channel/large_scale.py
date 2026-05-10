@@ -28,7 +28,7 @@ class ReceivedPowerScaler:
 
         target_power_watt = self.dbm_to_watt(signal_power_dbm)  # переводим заданный уровень из dBm в ватт
         scale = np.sqrt(target_power_watt / current_power)      # корень из отношения мощностей
-        y = x * scale                                           # чтобы изменить мощность, нужно умножить амплитуду на корень
+        y = x * scale                                           # чтобы изменить мощность, нужно умножить амплитуду на корень из отношения мощностей
         measured_power_watt = self.measure_signal_power_watt(y) # записываем, что получилось
         metadata = {
             "input_power_watt": current_power,
