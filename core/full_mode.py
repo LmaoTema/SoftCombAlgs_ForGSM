@@ -19,52 +19,42 @@ class FullPipeline(BasePipeline):
             tx_bits=result["tx_bits"],
             rx_bits=result["rx_bits"],
             channel_output=result.get("channel_output")
-        )        
+        )
 
+    def rx_detector(self, rx_output, tx_signal):
+
+        rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
+        h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
+        mf = self.matched_filter.process(rx_signal, h)
+        eq = self.equalizer.process(mf, h)
+        detected_bits, llr = self.detector.process(eq, h)
+
+        return detected_bits, llr
+    
     def process_frame(self, bits):
 
+        # Передатчик
         coded_bits = self.encoder.process(bits.tolist())
-
         interleaved_bits = np.array(self.interleaver.process(coded_bits))
-
         tx_signal = self.modulator.process(interleaved_bits)
-
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
-        # первый канал
+        # Первый канал
         rx_output_1 = self.channel.process(tx_signal)
+        detected_bits_1, llr_1 = self.rx_detector(rx_output_1, tx_signal)
 
-        rx_samples_1, channel_state_1, _ = self._unwrap_channel_output(rx_output_1)
-
-        h1 = self.estimator.process(rx_samples_1, tx_signal, channel_state=channel_state_1)
-
-        mf1 = self.matched_filter.process(rx_samples_1, h1)
-
-        eq1 = self.equalizer.process(mf1, h1)
-
-        llr1 = self.detector.process(eq1, h1)
-
-        # второй канал (иммитируем приём для второго сектора)
+        # Второй канал (иммитируем приём для второго сектора)
         rx_output_2 = self.channel.process(tx_signal)
-        
-        rx_samples_2, channel_state_2, _ = self._unwrap_channel_output(rx_output_2)
-
-        h2 = self.estimator.process(rx_samples_2,tx_signal,channel_state=channel_state_2)
-
-        mf2 = self.matched_filter.process(rx_samples_2, h2)
-
-        eq2 = self.equalizer.process(mf2, h2)
-
-        llr2 = self.detector.process(eq2, h2)
+        detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal)
 
         sector_soft_list = [
             {
-                "llr": llr1,
-                "hard": (llr1 < 0).astype(np.int8)
+                "llr": llr_1,
+                "hard": detected_bits_1
             },
             {
-                "llr": llr2,
-                "hard": (llr2 < 0).astype(np.int8)
+                "llr": llr_2,
+                "hard": detected_bits_2
             }
         ]
 
