@@ -24,7 +24,8 @@ class RayleighMultipathChannel:
         self.seed = seed
         self.tail_policy = "same_length_with_tail_accounting"
         self.doppler_spectrum_override = None if doppler_spectrum_override is None else str(doppler_spectrum_override).upper()
-
+        
+        # проверка на четность    
         if self.L % 2 == 0:
             raise ValueError("filter_length must be odd")
 
@@ -39,6 +40,7 @@ class RayleighMultipathChannel:
         self.powers_db = np.asarray(pdp["powers_db"], dtype = float)
         self.doppler_types = list(pdp["doppler_types"])
 
+        #  нормировка мощностей профиля
         powers_lin = 10.0 ** (self.powers_db / 10.0)
         self.path_powers = powers_lin / np.sum(powers_lin)
         self.num_paths = len(self.delays_s)
@@ -56,14 +58,15 @@ class RayleighMultipathChannel:
         base_seed = None if seed is None else int(seed)
         self.effective_doppler_types = (
             [self.doppler_spectrum_override] * self.num_paths
-            if self.doppler_spectrum_override is not None
+            if self.doppler_spectrum_override is not None       # если override задан, использовать один и тот же тип спектра для всех лучей
             else list(self.doppler_types)
         )
-
+        
+        # cоздание коэф. замираний по лучам
         self._faders = []
         self._tap_seeds = []
-        for i, spectrum in enumerate(self.effective_doppler_types):
-            tap_seed = None if base_seed is None else (base_seed + 1000 + i)
+        for i, spectrum in enumerate(self.effective_doppler_types):             # одновременное получаем и индекс и значение
+            tap_seed = None if base_seed is None else (base_seed + 1000 + i)    
             self._tap_seeds.append(tap_seed)
             self._faders.append(
                 DopplerFader(
@@ -76,8 +79,8 @@ class RayleighMultipathChannel:
             )
 
     def _fractional_delay_kernel(self, frac_delay):
-        center = self.L // 2
-        n = np.arange(self.L, dtype = float) - center
+        center = self.L // 2                                # целочисленное деление (21 // 2 = 10)
+        n = np.arange(self.L, dtype = float) - center       # индекс центрального элемента фильтра
         kernel = np.sinc(n - frac_delay)
         kernel *= np.blackman(self.L)
         kernel /= np.sqrt(np.sum(np.abs(kernel) ** 2))
@@ -90,28 +93,29 @@ class RayleighMultipathChannel:
         kernel = self._fractional_delay_kernel(frac_delay)
         delayed = np.convolve(x, kernel, mode = "full")
         center = self.L // 2
-        return delayed[center:center + len(x)]
+        return delayed[center:center + len(x)]      # срез фильтра, убирает групповую задержку фильтра и возвращает сигнал той же длины
 
     def reset(self):
         for fader in self._faders:
             fader.reset()
 
     def process_with_state(self, x, samples_per_symbol = None):
-        x = np.asarray(x, dtype = np.complex128)
-        N = len(x)
-        y_full = np.zeros(N + self.max_delay, dtype = np.complex128)
-        path_gains = []
-        tap_metadata = []
+        x = np.asarray(x, dtype = np.complex128)    # массив complex
+        N = len(x)  # длинна сигнала
+        y_full = np.zeros(N + self.max_delay, dtype = np.complex128)    # полная длинна выходного сигнала
+        path_gains = [] # cписок, куда будут складываться коэффициенты каждого луча
+        tap_metadata = []   # список metadata по каждому tap
 
-        for k in range(self.num_paths):
-            int_delay = int(self.int_delays[k])
-            frac_delay = float(self.frac_delays[k])
-            path_power = float(self.path_powers[k])
+        for k in range(self.num_paths):         # cоздаёт последовательность индексов
+            int_delay = int(self.int_delays[k]) # целая задержка для k-ого луча
+            frac_delay = float(self.frac_delays[k]) # дробная задержка для k-ого луча
+            path_power = float(self.path_powers[k]) # нормированная мощность k-ого луча
 
-            delayed = self._apply_fractional_delay(x, frac_delay)
+            delayed = self._apply_fractional_delay(x, frac_delay)   # cигнал сдвигается на дробную часть отсчёта
             fading, fading_metadata = self._faders[k].generate_with_metadata(len(delayed))
+            # формирование самого луча
             path = np.sqrt(path_power) * fading * delayed
-            path_gain = np.sqrt(path_power) * fading
+            path_gain = np.sqrt(path_power) * fading    # коэффициент канала для данного tap
             path_gains.append(path_gain)
             tap_metadata.append({
                 **fading_metadata,
@@ -122,7 +126,7 @@ class RayleighMultipathChannel:
 
             path_start = int_delay
             path_end = min(path_start + len(path), len(y_full))
-            y_full[path_start:path_end] += path[:path_end - path_start]
+            y_full[path_start:path_end] += path[:path_end - path_start]     # целая задержка реализуется не фильтром, а сдвигом позиции вставки
 
         y = y_full[:N]
         total_output_energy = float(np.sum(np.abs(y_full) ** 2))

@@ -23,4 +23,4 @@ class Equalizer(Block):
     
     def _process(self, match_signal, h):
 
-        return self.equalizer.process_eq(match_signal,)
+        return self.equalizer.process_eq(match_signal, h)

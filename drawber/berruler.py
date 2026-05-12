@@ -151,7 +151,10 @@ class BERRuler:
                 "data": bits[136:1384],
             }
         return {"full": bits[:]}
-
+    
+    @property
+    def current_x(self):
+        return self.prx_dbm
 
     def update_frame(self, tx_bits, rx_bits, channel_output = None):
         tx_blocks = self._slice_blocks(tx_bits)
@@ -240,23 +243,28 @@ class BERRuler:
         x_label = self._current_axis_label(x_value)
 
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        all_blocks_error_free = True
 
         for name, stat in self.stats.items():
             n_bits = max(1, stat["NumTrBits"])
             n_err_bits = stat["NumErBits"]
-            ber = n_err_bits / n_bits if n_err_bits > 0 else 3.0 / n_bits
+            ber = n_err_bits / n_bits if n_err_bits > 0 else np.nan
 
             n_frames = max(1, stat["NumTrFrames"])
             n_err_frames = stat["NumErFrames"]
 
+            fer = n_err_frames / n_frames if n_err_frames > 0 else np.nan
+
+            if n_err_bits > 0:
+                all_blocks_error_free = False
             
-            fer = n_err_frames / n_frames if n_err_frames > 0 else 3.0 / n_frames
-           
             self.results[name]["BER"].append(ber)
             self.results[name]["FER"].append(fer)
 
             if self.enable_log:
-                print(f"{ts} | {x_label} | {name} BER={ber:.3e} | FER={fer:.3e} | Frames={stat['NumTrFrames']}")
+                ber_label = f"{ber:.3e}" if np.isfinite(ber) else "not-observed"
+                fer_label = f"{fer:.3e}" if np.isfinite(fer) else "not-observed"
+                print(f"{ts} | {x_label} | {name} BER={ber_label} | FER={fer_label} | Frames={stat['NumTrFrames']}")
         
         self._append_channel_metric("average_channel_power", default = None)
         self._append_channel_metric("applied_signal_power_dbm", default = None)
@@ -271,22 +279,37 @@ class BERRuler:
         self._append_channel_metric("outage", default = 0.0)
         
         main_ber = list(self.results.values())[0]["BER"][-1]
-        if self.stop_by_min_BER and main_ber < self.MinBER:
+        if self.stop_by_min_BER and np.isfinite(main_ber) and main_ber < self.MinBER:
             self.isStop = True
 
-        self._update_power_step()
+        if all_blocks_error_free:
+            self.isStop = True
+
+        if not self.isStop:
+            self._update_power_step()
         self.reset()
         if self.enable_log:
             print()
 
     def _update_power_step(self):
         if len(self.x_values) < 2:
-            self.prx_dbm += self.prx_dbm_step
+            self._advance_power()
             return
 
-        ber_prev = list(self.results.values())[0]["BER"][-2]
-        ber_curr = list(self.results.values())[0]["BER"][-1]
-        rate = np.inf if ber_curr == 0 else ber_prev / ber_curr
+        main_key = next(iter(self.results))
+        ber_prev = self.results[main_key]["BER"][-2]
+        ber_curr = self.results[main_key]["BER"][-1]
+
+        if (
+            not np.isfinite(ber_prev)
+            or not np.isfinite(ber_curr)
+            or ber_prev <= 0.0
+            or ber_curr <= 0.0
+        ):
+            self._advance_power()
+            return
+
+        rate = ber_prev / ber_curr
         
         step = self.prx_dbm_step
         min_step = self.prx_dbm_min_step
@@ -297,15 +320,19 @@ class BERRuler:
                 0.5 if rate / self.MaxBERRate < 4 else
                 0.25 if rate / self.MaxBERRate < 16 else 
                 0.125 if rate / self.MaxBERRate < 64 else 
-                0.0625
+                 0.0625
             )
             step = max(step * dec, min_step)
         elif rate < self.MinBERRate:
             step = min(step * 2, max_step)
-            self.prx_dbm_step = step
-            self.prx_dbm += self.prx_dbm_step
-            if self.prx_dbm > self.prx_dbm_max:
-                self.isStop = True
+
+        self.prx_dbm_step = step
+        self._advance_power()
+
+    def _advance_power(self):
+        self.prx_dbm += self.prx_dbm_step
+        if self.prx_dbm > self.prx_dbm_max:
+            self.isStop = True
 
     def reset(self):
         for stat in self.stats.values():

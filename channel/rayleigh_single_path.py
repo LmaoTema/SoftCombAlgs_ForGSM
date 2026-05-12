@@ -36,6 +36,7 @@ class DopplerFader:
             return "reference"
         return "legacy_non_reference"
 
+    # Нормировка средней мощности процесса
     @staticmethod
     def _normalize_average_power(h, target_power = 1.0):
         measured_power = float(np.mean(np.abs(h) ** 2)) if len(h) else 0.0
@@ -54,7 +55,7 @@ class DopplerFader:
             return
 
         if self.spectrum == "CLARKE":
-            self._angles = self.rng.uniform(0.0, 2.0 * np.pi, size = self.n_sin)        # cлучайные углы рассеяния
+            self._angles = self.rng.uniform(0.0, 2.0 * np.pi, size = self.n_sin)        # генерируются cлучайные углы рассеяния (равномерное распределение, числа между a и b, N - штук)
             self._freqs = self.fd * np.cos(self._angles)        # преобразование углов в допплеровские частоты
             self._coeffs = (
                 self.rng.normal(size = self.n_sin) + 1j * self.rng.normal(size = self.n_sin)
@@ -74,7 +75,7 @@ class DopplerFader:
 
     def _draw_frequencies(self, count, spectrum):
         if self.fd <= 0:
-            return np.zeros(count, dtype = float)
+            return np.zeros(count, dtype = float)       # массив длины count, заполненный нулями
 
         if spectrum == "CLASS":
             theta = self.rng.uniform(-0.5 * np.pi, 0.5 * np.pi, size = count)
@@ -109,7 +110,7 @@ class DopplerFader:
         raise ValueError(f"Unsupported Doppler spectrum: {spectrum}")
 
     def generate(self, N):
-        h, _ = self.generate_with_metadata(N)
+        h, _ = self.generate_with_metadata(N)       # функция справа возвращает два значения: сам процесс h; словарь metadata(второе игнорируем)
         return h
 
     def generate_with_metadata(self, N):
@@ -127,13 +128,13 @@ class DopplerFader:
             }
 
         '''
-        - генерируются `N` независимых комплексных гауссовых отсчётов;
-        - деление на `sqrt(2)` делает дисперсии I и Q равными `1/2`;
+        - генерируются N независимых комплексных гауссовых отсчётов;
+        - деление на sqrt(2) делает дисперсии I и Q равными 1/2;
         - измеренная мощность сохраняется в metadata.
         '''
         if self.spectrum == "IID":
             h = (
-                self.rng.normal(size = N) + 1j * self.rng.normal(size = N)
+                self.rng.normal(size = N) + 1j * self.rng.normal(size = N)      # создаются N нормальных отсчётов для действительной и мнимой частей
             ) / np.sqrt(2.0)
             self._sample_index += N
             measured_power = float(np.mean(np.abs(h) ** 2))
@@ -149,7 +150,7 @@ class DopplerFader:
                 "sample_rate_hz": self.fs,
             }
 
-        n = np.arange(self._sample_index, self._sample_index + N, dtype = float)
+        n = np.arange(self._sample_index, self._sample_index + N, dtype = float)    # временные номера отсчетов
 
         if self.spectrum == "CLARKE":
             phases = 2.0 * np.pi * np.outer(self._freqs / self.fs, n)           # вычисляются фазы синусоид
@@ -173,7 +174,7 @@ class DopplerFader:
         h = np.sum(self._coeffs[:, None] * np.exp(1j * phases), axis = 0)
 
         if self.spectrum == "RICE":
-            k_factor = 1.0
+            k_factor = 1.0          # отношение мощности прямого луча к рассеянной части
             f_los = 0.7 * self.fd
             los = np.exp(1j * (2.0 * np.pi * f_los * n / self.fs + self._los_phase))
             h = np.sqrt(1.0 / (k_factor + 1.0)) * h + np.sqrt(k_factor / (k_factor + 1.0)) * los
@@ -221,7 +222,7 @@ class RayleighSinglePathChannel:
         self._fader.reset()
 
     def process_with_state(self, x, samples_per_symbol = None):
-        x = np.asarray(x, dtype = np.complex128)
+        x = np.asarray(x, dtype = np.complex128)                            # входной сигнал приводится к массиву numpy комплексного типа
         h, fading_metadata = self._fader.generate_with_metadata(len(x))
         y = h * x
         state = ChannelState(

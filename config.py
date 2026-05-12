@@ -4,8 +4,9 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 simulation_params = {
     "channel_type": "TCHFS",
     "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "x_axis_metric": "snr_db",     # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "None"   # "None/"Half"/"Full"    
+    "x_axis_metric": "dbm",     # "dbm" / "snr_db" / "ebn0_db"
+    "processing_mode": "none",  # "none"/ "half"/ "full"    
+    "combining_method": "PDMRC" # "PDMRC" / "SC" / "ACS"
 }
 
 block_params = {
@@ -24,18 +25,18 @@ BER = {
     "h2dB_max_step": 1.6,
     "h2dB_max": 100,
     
-    "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 2.0,
+    "prx_dbm_init": -118.0 + 5,
+    "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -102.0,
+    "prx_dbm_max": -108.0,
 
-    "min_BER": 5e-3,
+    "min_BER": 1e-3,
     "min_FER": 1,
     
-    "min_NumErBits": 150,
-    "min_NumErFrames": 400,
-    "min_NumTrFrames": 400,
+    "min_NumErBits": 500,
+    "min_NumErFrames": 1000,
+    "min_NumTrFrames": 1000,
     
     "max_NumTrBits": 5e6,
     "max_NumTrFrames": 2000,
@@ -44,7 +45,7 @@ BER = {
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": False
+    "stop_by_min_BER": True
 }
 
 mode_params = {
@@ -52,10 +53,10 @@ mode_params = {
         "scheme": "TCHFS",
         "frame_bits": 260
     },
-   # "CS1": {
-    #    "scheme": "CS1",
-    #    "frame_bits": 184
-    #},
+#    "CS1": {
+#        "scheme": "CS1",
+#        "frame_bits": 184
+#     },
     #"MCS1": {
     #    "scheme": "MCS1",
      #   "frame_bits": MSC_PARAMS["MCS1"]["header_bits"] + MSC_PARAMS["MCS1"]["data_bits"]
@@ -72,8 +73,8 @@ modulation_params = {
     "sps": 4,
     "h": 0.5,
     "gaus_duration": 4,
-    "rect_duration": 1,
-    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
+    "rect_duration": 1  ,
+    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {

@@ -2,6 +2,7 @@ import numpy as np
 import csv
 from config import block_params
 
+
 class GMSKDetector:
     def __init__(self, params, block_params):
         self.BT = params.get("BT", 0.3)
@@ -23,9 +24,9 @@ class GMSKDetector:
 
         return rhh
 
+    # Определяем влияние предыдущих бит для каждого состояния
     def calc_increment(self, rhh):
-        # Определяем влияние предыдущих бит для каждого состояния
-        # Учетом деротации:
+        # С учетом деротации:
         # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
 
         increment = np.zeros(16)
@@ -48,6 +49,7 @@ class GMSKDetector:
 
         return increment
 
+    # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
         # if (increment == np.zeros(16)).all():
         #     if block_params["channel"]["is_working"] == False:
@@ -62,30 +64,29 @@ class GMSKDetector:
 
         name = 'res_ch_incr'
 
-        # Расчет метрик для всех возможных состояний
+
+        # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
         old_path_metrics[start_state] = 0.0
         new_path_metrics = np.zeros(16)
 
-        samples_num = sampled_signal.size
+        total_symbols = sampled_signal.size
+        trans_table = np.zeros((total_symbols, 16))
+        symbol_num = 0
 
-        trans_table = np.zeros((samples_num, 16))
-
-        sample_nr = 0
-        # Знак для деротации:
-        # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
+        # Знак для деротации
         sign_rotate = 1
 
         data_to_save = []
-
-        while sample_nr < samples_num:
+        
+        while symbol_num < total_symbols:
             
             # Деротация
-            if (sample_nr % 2) == 0:
-                input_symbol =  sign_rotate * sampled_signal[sample_nr].imag
+            if (symbol_num % 2) == 0:
+                input_symbol =  sign_rotate * sampled_signal[symbol_num].imag
             else:
                 sign_rotate = - sign_rotate
-                input_symbol =  sign_rotate * sampled_signal[sample_nr].real
+                input_symbol =  sign_rotate * sampled_signal[symbol_num].real
             
             #  Расчет метрик для всех возможных состояний на текущем отсчете
             for i in range(8):
@@ -96,7 +97,7 @@ class GMSKDetector:
                     new_path_metrics[2 * i] = pm_candidate1
                 else:
                     new_path_metrics[2 * i] = pm_candidate2
-                trans_table[sample_nr][2 * i] = paths_difference
+                trans_table[symbol_num][2 * i] = paths_difference
 
                 pm_candidate1 = old_path_metrics[i] - input_symbol + increment[i]
                 pm_candidate2 = old_path_metrics[i + 8] - input_symbol + increment[i + 8]
@@ -105,7 +106,7 @@ class GMSKDetector:
                     new_path_metrics[2 * i + 1] = pm_candidate1
                 else:
                     new_path_metrics[2 * i + 1] = pm_candidate2
-                trans_table[sample_nr][2 * i + 1] = paths_difference
+                trans_table[symbol_num][2 * i + 1] = paths_difference
 
             # Обновление путей
             tmp = new_path_metrics
@@ -113,22 +114,22 @@ class GMSKDetector:
             old_path_metrics = tmp
             
             # Первые 8 и последние записываем в data_to_save
-            if sample_nr < 8 or sample_nr > 143:
+            if symbol_num < 8 or symbol_num > 143:
                 # Прогоняем для каждого берста решетку с инкрементами и без них
                 # Учитываем, что счетчик один на разные потоки. Поэтому смотрим (х % 16)
                 # Интересует только первый берст (с и без инкрментами) каждого потока.
                 # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
                 if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
                     print('______________________')
-                    print('number bit = ', sample_nr)
+                    print('number bit = ', symbol_num)
                     for i in range (16):
                         formatted_metric = f"{old_path_metrics[i]:.3f}"      
-                        data_to_save.append([sample_nr, i,  formatted_metric])
+                        data_to_save.append([symbol_num, i,  formatted_metric])
 
-                if sample_nr == 147:
+                if symbol_num == 147:
                     self.counter +=1
 
-            sample_nr += 1
+            symbol_num += 1
 
         # запись листа в csv
         # так как в counter добавили 1, то и проверки сдвинулись на 1
@@ -150,7 +151,8 @@ class GMSKDetector:
 
         return best_stop_state
     
-    def traceback(self, trans_table, best_stop_state):
+    def traceback(self, trans_table, best_stop_state, snr):
+        # Таблица переходов: из каких состояний (значения списка) возможно попасть в текущее состояние (индекс списка)
         state_transfer = [
             [0, 8],
             [0, 8],
@@ -170,32 +172,89 @@ class GMSKDetector:
             [7, 15]
         ]
 
-        bits = np.zeros(148)
-        sample_nr = 148
-        curr_state = best_stop_state
-        while sample_nr > 0:
-            sample_nr -= 1
-            paths_difference = trans_table[sample_nr][curr_state]
+        # Инициализация
+        total_symbols = 148
+        hard_bits = np.zeros(total_symbols)
+        survivor_states = np.zeros(total_symbols, dtype=int)
+        llr = None
+        symbol_num = total_symbols
+        current_state = best_stop_state
+
+        while symbol_num > 0:
+            symbol_num -= 1
             
-            hard_decision = curr_state % 2
+            # Определяем бит по индексу текущего состояния
+            hard_bits[symbol_num] = current_state % 2
+            survivor_states[symbol_num] = current_state
 
-            if (self.type_demod == "vit_hard"):
-                bits[sample_nr] = hard_decision     
-            elif (self.type_demod == "vit_soft"):
-                confidence = np.abs(paths_difference)
-                if hard_decision == 0:
-                    bits[sample_nr] = confidence
-                else:
-                     bits[sample_nr] = - confidence
-
+            # Переходим к предыдущему состоянию с бОльшой метрикой
+            paths_difference = trans_table[symbol_num][current_state]
             if paths_difference > 0:
-                prev_state = state_transfer[curr_state][1]
+                current_state = state_transfer[current_state][1]
             else:
-                prev_state = state_transfer[curr_state][0]
+                current_state = state_transfer[current_state][0]
 
-            curr_state = prev_state
+        if self.type_demod == "vit_soft":
+            # Задержка принятия решения
+            decision_delay = 16
+            # Масштабируюший коэффициент для обновления llr
+            # В приближении дает фиксированное мат.ожидание llr (около 1)
+            scale_factor = 4 * snr
 
-        return bits
+            # Инициализация
+            soft_values = np.ones(total_symbols) * 1000.0
+            symbol_num = total_symbols
+
+            while symbol_num > 0:
+                symbol_num -= 1
+                current_state = survivor_states[symbol_num]
+
+                # Ищем предыдщуее ошибочное состояние
+                paths_difference = trans_table[symbol_num][current_state]
+                if paths_difference > 0:
+                    previous_wrong_state = state_transfer[current_state][0]
+                else:
+                    previous_wrong_state = state_transfer[current_state][1]
+
+                # Для обновления llr 
+                delta = np.abs(paths_difference) / scale_factor
+                soft_values[symbol_num] = min(soft_values[symbol_num], delta)
+
+                current_wrong_state = previous_wrong_state
+                for j in range (symbol_num - 1, max(-1, symbol_num - decision_delay), -1):
+
+                    # Проверка, не сошлись ли пути
+                    if current_wrong_state == survivor_states[j]:
+                            break
+                    
+                    # Получаем жесткие решения
+                    survivor_bit = survivor_states[j] % 2
+                    wrong_bit = current_wrong_state % 2
+                    # Если биты разные - обновляем llr
+                    if survivor_bit != wrong_bit:
+                        soft_values[j] = min(soft_values[j], delta)
+                    
+                    # Идем дальше по неправильному пути (пока биты не станут равными)
+                    paths_difference = trans_table[j][current_wrong_state]
+                    if paths_difference > 0:
+                        current_wrong_state = state_transfer[current_wrong_state][1]
+                    else:
+                        current_wrong_state = state_transfer[current_wrong_state][0]
+            
+            llr  = np.zeros(total_symbols)
+            for i in range(total_symbols):
+                # Клиппирование
+                L = min(soft_values[i], 127.0)
+                
+                # Мягкое решение
+                if hard_bits[i] == 0:
+                    llr[i] = L
+                else:
+                    llr[i] = -L
+        else:
+            llr = np.zeros(total_symbols, dtype=float)
+
+        return hard_bits, llr
 
     def diff_phase(self, burst_samples):
         y_k = burst_samples[self.sps - 1 :: self.sps]
@@ -217,7 +276,9 @@ class GMSKDetector:
             burst_bits[i] = d_curr[i] ^ d_prev
             d_prev = burst_bits[i]
 
-        return burst_bits
+        llr = np.zeros(d_curr.size, dtype=float)
+
+        return burst_bits, llr
 
     def process_detect(self, complex_signal, h):
         
@@ -225,7 +286,8 @@ class GMSKDetector:
         samples_per_burst = 156 * sps
         num_bursts = len(complex_signal) // samples_per_burst
     
-        all_bits = []
+        burst_bits_output = []
+        burst_llr_output = []
 
         for b in range(num_bursts):
  
@@ -233,8 +295,9 @@ class GMSKDetector:
             burst = complex_signal[start_idx : start_idx + 148 * sps]
 
             if self.type_demod == "diff_phase":
-                burst_bits = self.diff_phase(burst)
-                all_bits.append(burst_bits)
+                burst_bits, llr = self.diff_phase(burst)
+                burst_bits_output.append(burst_bits)
+                burst_llr_output.append(llr) 
 
             elif self.type_demod in ["vit_soft", "vit_hard"]:
                 # Расчет инкрементов - ИХ на выходе СФ x(t). Используется для определения влияния соседних символов
@@ -258,10 +321,12 @@ class GMSKDetector:
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
                 # Проходимся от конца к началу по выстроенной решетке
-                burst_bits = self.traceback(trans_table, best_stop_state)
+                burst_bits, llr = self.traceback(trans_table, best_stop_state, snr=1)
+                # Объединяем результаты разных пакетов 
+                burst_bits_output.append(burst_bits)
+                burst_llr_output.append(llr)
 
-                all_bits.append(burst_bits)
-                
-        bits = np.concatenate(all_bits)
+        detector_bits= np.concatenate(burst_bits_output)
+        detector_llr = np.concatenate(burst_llr_output)
 
-        return bits
+        return detector_bits, detector_llr
