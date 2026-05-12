@@ -151,7 +151,10 @@ class BERRuler:
                 "data": bits[136:1384],
             }
         return {"full": bits[:]}
-
+    
+    @property
+    def current_x(self):
+        return self.prx_dbm
 
     def update_frame(self, tx_bits, rx_bits, channel_output = None):
         tx_blocks = self._slice_blocks(tx_bits)

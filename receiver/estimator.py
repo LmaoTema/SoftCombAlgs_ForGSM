@@ -21,7 +21,7 @@ class ChannelEstimate():
             "est_channel_len_sps", 5 * self.sps
         )
         self.estimator_reg = modulation_params.get("estimator_reg", 1e-2)
-        self.debug_first_burst = modulation_params.get("debug_first_burst", True)
+        self.debug_first_burst = modulation_params.get("debug_first_burst", False)
     
     # h(t) композитного фильтра (передатчик + канал)
     def h_awgn(self):
