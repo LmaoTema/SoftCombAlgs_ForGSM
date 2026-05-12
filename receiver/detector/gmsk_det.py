@@ -130,7 +130,8 @@ class GMSKDetector:
         # Инициализация
         total_symbols = 148
         hard_bits = np.zeros(total_symbols)
-        survivor_states = np.zeros(total_symbols)
+        survivor_states = np.zeros(total_symbols, dtype=int)
+        llr = None
         symbol_num = total_symbols
         current_state = best_stop_state
 
@@ -158,10 +159,10 @@ class GMSKDetector:
             # Инициализация
             soft_values = np.ones(total_symbols) * 1000.0
             symbol_num = total_symbols
-            current_state = best_stop_state
 
             while symbol_num > 0:
                 symbol_num -= 1
+                current_state = survivor_states[symbol_num]
 
                 # Ищем предыдщуее ошибочное состояние
                 paths_difference = trans_table[symbol_num][current_state]
@@ -172,6 +173,7 @@ class GMSKDetector:
 
                 # Для обновления llr 
                 delta = np.abs(paths_difference) / scale_factor
+                soft_values[symbol_num] = min(soft_values[symbol_num], delta)
 
                 current_wrong_state = previous_wrong_state
                 for j in range (symbol_num - 1, max(-1, symbol_num - decision_delay), -1):
@@ -183,7 +185,6 @@ class GMSKDetector:
                     # Получаем жесткие решения
                     survivor_bit = survivor_states[j] % 2
                     wrong_bit = current_wrong_state % 2
-
                     # Если биты разные - обновляем llr
                     if survivor_bit != wrong_bit:
                         soft_values[j] = min(soft_values[j], delta)
@@ -194,10 +195,8 @@ class GMSKDetector:
                         current_wrong_state = state_transfer[current_wrong_state][1]
                     else:
                         current_wrong_state = state_transfer[current_wrong_state][0]
-
-                current_state = survivor_states[symbol_num - 1]
             
-            llr = np.zeros(total_symbols)
+            llr  = np.zeros(total_symbols)
             for i in range(total_symbols):
                 # Клиппирование
                 L = min(soft_values[i], 127.0)
@@ -208,9 +207,9 @@ class GMSKDetector:
                 else:
                     llr[i] = -L
         else:
-            bits = hard_bits
+            llr = np.zeros(total_symbols, dtype=float)
 
-        return bits
+        return hard_bits, llr
 
     def diff_phase(self, burst_samples):
         y_k = burst_samples[self.sps - 1 :: self.sps]
@@ -232,7 +231,9 @@ class GMSKDetector:
             burst_bits[i] = d_curr[i] ^ d_prev
             d_prev = burst_bits[i]
 
-        return burst_bits
+        llr = np.zeros(d_curr.size, dtype=float)
+
+        return burst_bits, llr
 
     def process_detect(self, complex_signal, h):
         
@@ -240,7 +241,8 @@ class GMSKDetector:
         samples_per_burst = 156 * sps
         num_bursts = len(complex_signal) // samples_per_burst
     
-        burst_output = []
+        burst_bits_output = []
+        burst_llr_output = []
 
         for b in range(num_bursts):
  
@@ -248,8 +250,9 @@ class GMSKDetector:
             burst = complex_signal[start_idx : start_idx + 148 * sps]
 
             if self.type_demod == "diff_phase":
-                burst_bits = self.diff_phase(burst)
-                burst_output.append(burst_bits)
+                burst_bits, llr = self.diff_phase(burst)
+                burst_bits_output.append(burst_bits)
+                burst_llr_output.append(llr) 
 
             elif self.type_demod in ["vit_soft", "vit_hard"]:
                 # Расчет инкрементов - ИХ на выходе СФ x(t). Используется для определения влияния соседних символов
@@ -267,9 +270,11 @@ class GMSKDetector:
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
                 # Проходимся от конца к началу по выстроенной решетке
-                burst_bits, llr = self.traceback_hard(trans_table, best_stop_state, snr=1)
-                burst_output.append(burst_bits)
+                burst_bits, llr = self.traceback(trans_table, best_stop_state, snr=1)
+                burst_bits_output.append(burst_bits)
+                burst_llr_output.append(llr)
 
-        detector_output = np.concatenate(burst_output)
+        detector_bits= np.concatenate(burst_bits_output)
+        detector_llr = np.concatenate(burst_llr_output)
 
-        return detector_output
+        return detector_bits, detector_llr
