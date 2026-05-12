@@ -23,29 +23,27 @@ class NonePipeline(BasePipeline):
         )        
     def process_frame(self, bits):
 
+        # Передатчик
         coded_bits = self.encoder.process(bits.tolist())
-
         interleaved_bits = np.array(self.interleaver.process(coded_bits))
-
         tx_signal = self.modulator.process(interleaved_bits)
-
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
+        # Канал
         rx_output = self.channel.process(tx_signal)
 
-        rx_samples, channel_state, _ = self._unwrap_channel_output(rx_output)
-
-        h = self.estimator.process(rx_samples, tx_signal, channel_state=channel_state)
-
-        mf = self.matched_filter.process(rx_samples, h)
-
+        # Приемник
+        rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
+        h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
+        mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
+        detected_bits, llr = self.detector.process(eq, h)
 
-        llr = self.detector.process(eq, h)
-
-        detected_bits = (llr < 0).astype(np.int8)
-
-        deintl = self.deinterleaver.process(llr)
+        # Если есть мягкие решения, то в перемежитель подаем llr
+        if self.detector.detector.type_demod == "vit_soft":
+            deintl = self.deinterleaver.process(llr)
+        else:
+            deintl = self.deinterleaver.process(detected_bits)
 
         decoded_bits = self.decoder.process(deintl)
 

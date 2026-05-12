@@ -271,6 +271,7 @@ class GMSKDetector:
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
                 # Проходимся от конца к началу по выстроенной решетке
                 burst_bits, llr = self.traceback(trans_table, best_stop_state, snr=1)
+                # Объединяем результаты разных пакетов 
                 burst_bits_output.append(burst_bits)
                 burst_llr_output.append(llr)
 
