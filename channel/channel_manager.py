@@ -79,10 +79,31 @@ class ChannelChain:
     def process(self, x, *, signal_power_dbm = None, axis_metric = "dbm"):
         x_complex = np.asarray(x, dtype = np.complex128)
         y = x_complex
-        pre_fading_input_power_watt = float(np.mean(np.abs(x_complex) ** 2)) if len(x_complex) else 0.0
+        pre_fading_input_power_watt = float(np.mean(np.abs(x_complex) ** 2)) if len(x_complex) else 0.0 # cчитается мощность входного сигнала до физического тракта
         channel_state = None
-        applied_signal_power_watt = None
-        measured_signal_power_watt = None
+        pre_small_scale_reference_power_watt = None
+        pre_small_scale_reference_power_dbm = None
+
+        target_signal_power_dbm = signal_power_dbm
+        if target_signal_power_dbm is None and self.noise_channel is not None:
+            target_signal_power_dbm = self.noise_channel.signal_power
+        if target_signal_power_dbm is None:
+            raise ValueError("signal_power_dbm must be provided for the power-based channel model.")
+
+        scaling_metadata = None
+        if self.large_scale_channel is not None:
+            y, _, pre_small_scale_reference_power_watt, scaling_metadata = self.large_scale_channel.process(
+                y,
+                target_signal_power_dbm,
+            )
+        else:
+            pre_small_scale_reference_power_watt = float(np.mean(np.abs(y) ** 2)) if len(y) else 0.0
+            scaling_metadata = {
+                "input_power_watt": pre_small_scale_reference_power_watt,
+                "target_power_watt": pre_small_scale_reference_power_watt,
+                "applied_scale_linear": 1.0,
+                "output_power_watt": pre_small_scale_reference_power_watt,
+            }
 
         if self.fading_channel is not None:
             y, channel_state = self.fading_channel.process_with_state(
@@ -94,42 +115,27 @@ class ChannelChain:
 
         post_fading_power_watt = float(np.mean(np.abs(y) ** 2)) if len(y) else 0.0
 
-        target_signal_power_dbm = signal_power_dbm
-        if target_signal_power_dbm is None and self.noise_channel is not None:
-            target_signal_power_dbm = self.noise_channel.signal_power
-        if target_signal_power_dbm is None:
-            raise ValueError("signal_power_dbm must be provided for the power-based channel model.")
-
-        scaling_metadata = None
-        if self.large_scale_channel is not None:
-            y, applied_signal_power_watt, measured_signal_power_watt, scaling_metadata = self.large_scale_channel.process(
-                y,
-                target_signal_power_dbm,
-            )
-        else:
-            measured_signal_power_watt = float(np.mean(np.abs(y) ** 2)) if len(y) else 0.0
-            applied_signal_power_watt = measured_signal_power_watt
-            scaling_metadata = {
-                "input_power_watt": measured_signal_power_watt,
-                "target_power_watt": applied_signal_power_watt,
-                "applied_scale_linear": 1.0,
-                "output_power_watt": measured_signal_power_watt,
-            }
-
-        applied_signal_power_dbm = float(target_signal_power_dbm)
-        measured_signal_power_dbm = self.noise_channel.watt_to_dbm(measured_signal_power_watt)
+        pre_small_scale_reference_power_dbm = self.noise_channel.watt_to_dbm(pre_small_scale_reference_power_watt)
+        post_fading_power_dbm = self.noise_channel.watt_to_dbm(post_fading_power_watt)
 
         if self.noise_channel is None:
             raise ValueError("noise_channel must exist for the power-based AWGN model.")
 
         y_physical, noise_power_watt = self.noise_channel.process(y)
         post_awgn_power_watt = float(np.mean(np.abs(y_physical) ** 2)) if len(y_physical) else 0.0
+        post_awgn_physical_power_dbm = self.noise_channel.watt_to_dbm(post_awgn_power_watt)
         noise_power_dbm = self.noise_channel.watt_to_dbm(noise_power_watt)
         noise_variance_per_sample = self.noise_channel.noise_variance_per_sample()
 
-        carrier_to_noise_db = self.noise_channel.compute_cn_db(applied_signal_power_dbm, noise_power_dbm)
-        snr_db = self.noise_channel.compute_snr_db(measured_signal_power_watt, noise_power_watt)
-        ebn0_db = self.noise_channel.compute_ebn0_db(snr_db)
+        reference_carrier_to_noise_db = self.noise_channel.compute_cn_db(pre_small_scale_reference_power_dbm, noise_power_dbm)
+        instantaneous_carrier_to_noise_db = self.noise_channel.compute_cn_db(post_fading_power_dbm, noise_power_dbm)
+        reference_snr_db = self.noise_channel.compute_snr_db(pre_small_scale_reference_power_watt, noise_power_watt)
+        instantaneous_snr_db = self.noise_channel.compute_snr_db(post_fading_power_watt, noise_power_watt)
+        reference_ebn0_db = self.noise_channel.compute_ebn0_db(reference_snr_db)
+        instantaneous_ebn0_db = self.noise_channel.compute_ebn0_db(instantaneous_snr_db)
+        carrier_to_noise_db = instantaneous_carrier_to_noise_db
+        snr_db = instantaneous_snr_db
+        ebn0_db = instantaneous_ebn0_db
 
         average_channel_power = channel_state.average_channel_power
         outage = False
@@ -141,34 +147,51 @@ class ChannelChain:
         channel_model_name = self._channel_model_name()
         noise_metadata = self.noise_channel.noise_metadata()
 
-        channel_state.symbol_energy = normalized_signal_power_watt * self.samples_per_symbol
-        channel_state.average_sample_power = normalized_signal_power_watt
+        channel_state.symbol_energy = measured_output_power_watt * self.samples_per_symbol
+        channel_state.average_sample_power = measured_output_power_watt
         channel_state.metadata.update({
             "channel_model": channel_model_name,
             "sample_rate_hz": self.noise_channel.sample_rate,
             "noise_model": noise_metadata["noise_model"],
             "noise_bandwidth_hz": noise_metadata["noise_bandwidth_hz"],
             "noise_bandwidth_mode": noise_metadata["noise_bandwidth_mode"],
+            "signal_power_reference_point": "pre_small_scale_fading",
+            "pre_small_scale_reference_power_watt": pre_small_scale_reference_power_watt,
+            "pre_small_scale_reference_power_dbm": pre_small_scale_reference_power_dbm,
+            "post_fading_signal_power_watt": post_fading_power_watt,
+            "post_fading_signal_power_dbm": post_fading_power_dbm,
+            "noise_power_watt": noise_power_watt,
             "physical_output_power_watt": measured_output_power_watt,
+            "post_awgn_physical_power_watt": measured_output_power_watt,
+            "post_awgn_physical_power_dbm": measured_output_power_dbm,
             "post_fading_power_watt": post_fading_power_watt,
-            "post_large_scale_power_watt": measured_signal_power_watt,
+            "post_large_scale_power_watt": pre_small_scale_reference_power_watt,
             "post_awgn_power_watt": post_awgn_power_watt,
             "final_output_power_watt": normalized_signal_power_watt,
             "normalization_gain": normalization_gain,
             "unit_normalization_applied": True,
             "output_signal_kind": "receiver_normalized",
             "physical_reference_available": True,
-            "channel_state_power_domain": "receiver_normalized",
+            "channel_state_power_domain": "physical_post_awgn",
+            "physical_average_sample_power": measured_output_power_watt,
             "physical_symbol_energy": measured_output_power_watt * self.samples_per_symbol,
+            "receiver_normalized_average_sample_power": normalized_signal_power_watt,
+            "receiver_normalized_symbol_energy": normalized_signal_power_watt * self.samples_per_symbol,
+            "reference_carrier_to_noise_db": reference_carrier_to_noise_db,
+            "instantaneous_carrier_to_noise_db": instantaneous_carrier_to_noise_db,
+            "reference_snr_db": reference_snr_db,
+            "instantaneous_snr_db": instantaneous_snr_db,
+            "reference_ebn0_db": reference_ebn0_db,
+            "instantaneous_ebn0_db": instantaneous_ebn0_db,
             "ebn0_interpretation": noise_metadata["ebn0_interpretation"],
         })
 
         measured_sample_snr_db = snr_db
         resolved_axis_metric = self.noise_channel.normalize_axis_metric(axis_metric)
         axis_value = {
-            "dbm": applied_signal_power_dbm,
-            "snr_db": snr_db,
-            "ebn0_db": ebn0_db,
+            "dbm": pre_small_scale_reference_power_dbm,
+            "snr_db": reference_snr_db,
+            "ebn0_db": reference_ebn0_db,
         }[resolved_axis_metric]
 
         return ChannelOutput(
@@ -177,10 +200,10 @@ class ChannelChain:
             noise_power_watt = noise_power_watt,
             noise_power_dbm = noise_power_dbm,
             noise_variance_per_sample = noise_variance_per_sample,
-            applied_signal_power_watt = applied_signal_power_watt,
-            applied_signal_power_dbm = applied_signal_power_dbm,
-            measured_signal_power_watt = measured_signal_power_watt,
-            measured_signal_power_dbm = measured_signal_power_dbm,
+            applied_signal_power_watt = post_fading_power_watt,
+            applied_signal_power_dbm = post_fading_power_dbm,
+            measured_signal_power_watt = post_fading_power_watt,
+            measured_signal_power_dbm = post_fading_power_dbm,
             measured_output_power_watt = measured_output_power_watt,
             measured_output_power_dbm = measured_output_power_dbm,
             normalized_signal_power_watt = normalized_signal_power_watt,
@@ -203,9 +226,17 @@ class ChannelChain:
                 "noise_model": noise_metadata["noise_model"],
                 "noise_bandwidth_hz": noise_metadata["noise_bandwidth_hz"],
                 "noise_bandwidth_mode": noise_metadata["noise_bandwidth_mode"],
+                "signal_power_reference_point": "pre_small_scale_fading",
+                "pre_small_scale_reference_power_watt": pre_small_scale_reference_power_watt,
+                "pre_small_scale_reference_power_dbm": pre_small_scale_reference_power_dbm,
+                "post_fading_signal_power_watt": post_fading_power_watt,
+                "post_fading_signal_power_dbm": post_fading_power_dbm,
+                "noise_power_watt": noise_power_watt,
                 "physical_output_power_watt": measured_output_power_watt,
+                "post_awgn_physical_power_watt": measured_output_power_watt,
+                "post_awgn_physical_power_dbm": measured_output_power_dbm,
                 "post_fading_power_watt": post_fading_power_watt,
-                "post_large_scale_power_watt": measured_signal_power_watt,
+                "post_large_scale_power_watt": pre_small_scale_reference_power_watt,
                 "post_awgn_power_watt": post_awgn_power_watt,
                 "final_output_power_watt": normalized_signal_power_watt,
                 "normalization_gain": normalization_gain,
@@ -213,6 +244,13 @@ class ChannelChain:
                 "output_signal_kind": "receiver_normalized",
                 "physical_reference_available": True,
                 "measured_average_channel_power": channel_state.metadata.get("measured_average_channel_power"),
+                "reference_carrier_to_noise_db": reference_carrier_to_noise_db,
+                "instantaneous_carrier_to_noise_db": instantaneous_carrier_to_noise_db,
+                "reference_snr_db": reference_snr_db,
+                "instantaneous_snr_db": instantaneous_snr_db,
+                "reference_ebn0_db": reference_ebn0_db,
+                "instantaneous_ebn0_db": instantaneous_ebn0_db,
+                "axis_value_domain": "reference_sweep_point",
                 "ebn0_interpretation": noise_metadata["ebn0_interpretation"],
             },
         )
