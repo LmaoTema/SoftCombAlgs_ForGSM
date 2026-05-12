@@ -3,20 +3,21 @@ import numpy as np
 
 class FullPipeline(BasePipeline):
 
-    def prepare_point(self, x_value):
+    def prepare_point(self, x_value, ber_ruler=None):
         self.channel.set_signal_power(x_value)
         
-    def update_stats(self, ber_ruler, ber_ruler_uncoded, result):
-
+    def update_stats(self, ber_ruler, ber_ruler_uncoded, result, bits):
+        # Coded BER
         ber_ruler.update_frame(
-            bits=result["tx_bits"],
-            rx=result["decoded_bits"],
+            bits,
+            rx_bits=result["decoded_bits"],
             channel_output=result.get("channel_output")
         )
-
+        
+        # Uncoded BER
         ber_ruler_uncoded.update_frame(
-            result["tx_bits"],
-            result["rx_bits"],
+            tx_bits=result["tx_bits"],
+            rx_bits=result["rx_bits"],
             channel_output=result.get("channel_output")
         )        
 
