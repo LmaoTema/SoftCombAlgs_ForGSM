@@ -14,8 +14,8 @@ block_params = {
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
     "channel":        {"is_working": True},
-    "matched_filter": {"is_working": False},
-    "equalizer":      {"is_working": False},
+    "matched_filter": {"is_working": True},
+    "equalizer":      {"is_working": True},
 }
 
 BER = {
@@ -25,11 +25,11 @@ BER = {
     "h2dB_max_step": 1.6,
     "h2dB_max": 20.0,
     
-    "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 2.0,
+    "prx_dbm_init": -118.0 + 0,
+    "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -102.0,
+    "prx_dbm_max": -108.0,
 
     "min_BER": 1e-3,
     "min_FER": 1,
@@ -73,8 +73,8 @@ modulation_params = {
     "sps": 4,
     "h": 0.5,
     "gaus_duration": 4,
-    "rect_duration": 1,
-    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
+    "rect_duration": 1  ,
+    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
@@ -128,4 +128,3 @@ channel_params = {
     "sample_rate": DERIVED_SAMPLE_RATE_HZ,
     "doppler": 100,
 }
-
