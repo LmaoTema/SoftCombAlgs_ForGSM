@@ -27,7 +27,7 @@ class FullPipeline(BasePipeline):
         h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
         mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
-        detected_bits, llr = self.detector.process(eq, h)
+        detected_bits, llr = self.detector.process(eq, h, rx_output.ebn0_db)
 
         return detected_bits, llr
     
