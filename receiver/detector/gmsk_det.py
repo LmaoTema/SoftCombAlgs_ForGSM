@@ -144,11 +144,6 @@ class GMSKDetector:
     
     @staticmethod
     def calc_llr(total_symbols, hard_bits, survivor_states, trans_table, state_transfer, ebn0):
-        
-        # Масштабируюший коэффициент для обновления llr
-        # Дает фиксированное мат.ожидание llr
-        ebn0_liner =  10 ** (ebn0/10)
-        scale_factor = 4 * ebn0_liner
 
         # Задержка принятия решения
         decision_delay = 16
@@ -168,9 +163,12 @@ class GMSKDetector:
                 previous_wrong_state = state_transfer[current_state][0]
             else:
                 previous_wrong_state = state_transfer[current_state][1]
+            
+            # С учетом что Es = 1 остается только дисперсия шума
+            ebn0_liner =  10 ** (ebn0/10)
 
             # Нормированная на дисперсию шума разница путей
-            delta = np.abs(paths_difference) / scale_factor
+            delta = np.abs(paths_difference) * ebn0_liner
             L[symbol_num] = min(L[symbol_num], delta)
 
             current_wrong_state = previous_wrong_state

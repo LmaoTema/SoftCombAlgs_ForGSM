@@ -53,15 +53,12 @@ class NonePipeline(BasePipeline):
         plt.hist(llr_1, bins=100, density=True, color='red', alpha=0.6, label='LLR for Bit 1')
 
         # Оформление "под куратора"
-        plt.title("Распределение LLR на 108 дБм")
+        plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм")
         plt.xlabel("Значение LLR")
         plt.ylabel("Плотность вероятности")
         plt.grid()
-        plt.axvline(x=0, color='black', linestyle='--') # Линия порога
         plt.legend()
-
-        plt.xlim(-0.25, 0.25)
-        
+        # plt.xlim(-2.5, 2.5)
         plt.show()
 
         # Если есть мягкие решения, то в перемежитель подаем llr
