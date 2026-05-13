@@ -51,19 +51,10 @@ class GMSKDetector:
 
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        # if (increment == np.zeros(16)).all():
-        #     if block_params["channel"]["is_working"] == False:
-        #         name = 'res_without_channel_without_increment.csv'
-        #     else:
-        #         name = 'res_with_channel_without_increment.csv'
-        # else:
-        #     if block_params["channel"]["is_working"] == False:
-        #         name = 'res_without_channel_with_increment.csv'
-        #     else:
-        #         name = 'res_with_channel_with_increment.csv'
-
-        name = 'res_ch_incr'
-
+        if (increment == np.zeros(16)).all():
+                name = 'res_113_without_increment.csv'
+        else:
+                name = 'res_113_with_increment.csv'
 
         # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
@@ -198,8 +189,8 @@ class GMSKDetector:
             # Задержка принятия решения
             decision_delay = 16
             # Масштабируюший коэффициент для обновления llr
-            # В приближении дает фиксированное мат.ожидание llr (около 1)
-            scale_factor = 4 * snr
+            # В приближении дает фиксированное мат.ожидание llr (около 1 по теории)
+            scale_factor = 4 * 1 * snr
 
             # Инициализация
             soft_values = np.ones(total_symbols) * 1000.0
@@ -315,13 +306,12 @@ class GMSKDetector:
                 trans_table, old_path_metrics = self.calc_metric(increment, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
-                # trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
-
+                trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
 
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
                 # Проходимся от конца к началу по выстроенной решетке
-                burst_bits, llr = self.traceback(trans_table, best_stop_state, snr=1)
+                burst_bits, llr = self.traceback(trans_table, best_stop_state, snr=5)
                 # Объединяем результаты разных пакетов 
                 burst_bits_output.append(burst_bits)
                 burst_llr_output.append(llr)

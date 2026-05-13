@@ -49,18 +49,18 @@ class NonePipeline(BasePipeline):
         plt.figure(figsize=(10, 6))
 
         # Рисуем гистограммы
-        # density=True превращает количество в плотность вероятности (как на скрине)
-        # bins=100 делает график плавным
         plt.hist(llr_0, bins=100, density=True, color='blue', alpha=0.6, label='LLR for Bit 0')
         plt.hist(llr_1, bins=100, density=True, color='red', alpha=0.6, label='LLR for Bit 1')
 
         # Оформление "под куратора"
-        plt.title(f"Распределение LLR на выходе SOVA")
-        plt.xlabel("LLR Value")
+        plt.title("Распределение LLR на 108 дБм")
+        plt.xlabel("Значение LLR")
         plt.ylabel("Плотность вероятности")
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.axvline(x=0, color='black', linestyle='-') # Линия порога
+        plt.grid()
+        plt.axvline(x=0, color='black', linestyle='--') # Линия порога
         plt.legend()
+
+        plt.xlim(-0.25, 0.25)
         
         plt.show()
 
