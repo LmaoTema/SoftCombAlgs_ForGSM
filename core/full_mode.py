@@ -47,16 +47,7 @@ class FullPipeline(BasePipeline):
         rx_output_2 = self.channel.process(tx_signal)
         detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal)
 
-        sector_soft_list = [
-            {
-                "llr": llr_1,
-                "hard": detected_bits_1
-            },
-            {
-                "llr": llr_2,
-                "hard": detected_bits_2
-            }
-        ]
+        sector_soft_list = [llr_1 , llr_2]
 
         combined_llr = self.combiner.combine(sector_soft_list)
 

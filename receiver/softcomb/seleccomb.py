@@ -7,8 +7,12 @@ class SCCombiner:
         hards = []
         reliabilities = []
         
-        hards = np.array([s['hard'] for s in sector_soft_list])           
-        reliabilities = np.array(np.abs([sector['llr'] for sector in sector_soft_list]))
+        llrs = []
+        
+        llrs = np.array(sector_soft_list)
+        
+        reliabilities = np.array(np.abs(llrs))
+        hards = np.where(llrs < 0, -1, 1).astype(np.int8)
         
         best_idx = np.argmax(np.abs(reliabilities), axis=0) 
 
