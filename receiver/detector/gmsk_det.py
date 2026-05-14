@@ -155,14 +155,18 @@ class GMSKDetector:
                 else:
                     current_wrong_state = state_transfer[current_wrong_state][0]
 
-        llr = np.zeros(total_symbols, dtype=float)
+        raw_llr = np.zeros(total_symbols, dtype=float)
         for i in range(total_symbols):
             
             # Мягкое решение
             if hard_bits[i] == 0:
-                llr[i] = L[i]
+                raw_llr[i] = L[i]
             else:
-                llr[i] = - L[i]
+                raw_llr[i] = - L[i]
+
+        # Проецирование на сетку
+        llr_scale = 50 # Учитывая, что на 8 дБ (BER = 0.1) среднее 30.
+        llr = (np.clip(raw_llr / llr_scale, -1.0, 1.0) * 127.0).astype(np.int8)
 
         return llr
     
