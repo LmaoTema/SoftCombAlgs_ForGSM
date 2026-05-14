@@ -163,12 +163,11 @@ class GMSKDetector:
                 previous_wrong_state = state_transfer[current_state][0]
             else:
                 previous_wrong_state = state_transfer[current_state][1]
-            
-            # С учетом что Es = 1 остается только дисперсия шума
-            ebn0_liner =  10 ** (ebn0/10)
 
+            # Так как Eb = 1, остается только дисперсия шума
+            ebn0_liner =  10 ** (ebn0/10)
             # Нормированная на дисперсию шума разница путей
-            delta = np.abs(paths_difference) * ebn0_liner
+            delta = np.abs(paths_difference) * 2 * ebn0_liner
             L[symbol_num] = min(L[symbol_num], delta)
 
             current_wrong_state = previous_wrong_state
@@ -192,14 +191,14 @@ class GMSKDetector:
                 else:
                     current_wrong_state = state_transfer[current_wrong_state][0]
 
-            llr = np.zeros(total_symbols, dtype=float)
-            for i in range(total_symbols):
-                
-                # Мягкое решение
-                if hard_bits[i] == 0:
-                    llr[i] = L[i]
-                else:
-                    llr[i] = - L[i]
+        llr = np.zeros(total_symbols, dtype=float)
+        for i in range(total_symbols):
+            
+            # Мягкое решение
+            if hard_bits[i] == 0:
+                llr[i] = L[i]
+            else:
+                llr[i] = - L[i]
 
         return llr
     
