@@ -46,20 +46,18 @@ class NonePipeline(BasePipeline):
         llr_0 = llr[tx_bits == 0]
         llr_1 = llr[tx_bits == 1]
 
-        plt.figure(figsize=(10, 6))
+        # # Рисуем гистограммы
+        # plt.hist(llr_0, bins=30, density=True, color='blue', alpha=0.6, label='LLR для 0')
+        # plt.hist(llr_1, bins=30, density=True, color='red', alpha=0.6, label='LLR для 1')
 
-        # Рисуем гистограммы
-        plt.hist(llr_0, bins=100, density=True, color='blue', alpha=0.6, label='LLR for Bit 0')
-        plt.hist(llr_1, bins=100, density=True, color='red', alpha=0.6, label='LLR for Bit 1')
-
-        # Оформление "под куратора"
-        plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм")
-        plt.xlabel("Значение LLR")
-        plt.ylabel("Плотность вероятности")
-        plt.grid()
-        plt.legend()
-        # plt.xlim(-2.5, 2.5)
-        plt.show()
+        # # Оформление "под куратора"
+        # plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм, {int(rx_output.ebn0_db)} дБ")
+        # plt.xlabel("Значение LLR")
+        # plt.ylabel("Плотность вероятности")
+        # plt.grid()
+        # plt.legend()
+        # # plt.xlim(-2.5, 2.5)
+        # plt.show()
 
         # Если есть мягкие решения, то в перемежитель подаем llr
         if self.detector.detector.type_demod == "vit_soft":
@@ -73,6 +71,8 @@ class NonePipeline(BasePipeline):
             "decoded_bits": decoded_bits,
             "tx_bits": tx_bits,
             "rx_bits": detected_bits,
-            "channel_output": rx_output
+            "channel_output": rx_output,
+            "llr_0": llr_0,
+            "llr_1": llr_1
         }
 

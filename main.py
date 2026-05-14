@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from core.factory import create_pipeline
 
@@ -74,6 +75,10 @@ def main():
     else:
         ber_ruler = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric)
         ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, enable_log=False)
+
+    llr_0 = []
+    llr_1 = []
+    counter = 0
     
     while not ber_ruler.isStop:
 
@@ -86,6 +91,37 @@ def main():
             bits = np.random.randint(0, 2, frame_bits)
 
             result = pipeline.process(bits)
+
+            llr_0.append(result["llr_0"])
+            llr_1.append(result["llr_1"])
+            counter += 1
+
+            if counter == 20:
+                rx_output = result["channel_output"]
+                llr_0 = np.concatenate(llr_0)
+                llr_1 = np.concatenate(llr_1)
+
+                q25_0, q75_0 = np.percentile(llr_0, [25, 75])
+                bin_width_0 = 2 * (q75_0 - q25_0) * len(llr_0) ** (-1/3)
+                bins_0 = int((llr_0.max() - llr_0.min()) / bin_width_0)
+
+                q25_1, q75_1 = np.percentile(llr_1, [25, 75])
+                bin_width_1 = 2 * (q75_1 - q25_1) * len(llr_1) ** (-1/3)
+                bins_1 = int((llr_1.max() - llr_1.min()) / bin_width_1)
+                
+
+                # Рисуем гистограммы
+                plt.hist(llr_0, bins=bins_0, density=True, color='blue', alpha=0.6, label='LLR для 0')
+                plt.hist(llr_1, bins=bins_1, density=True, color='red', alpha=0.6, label='LLR для 1')
+
+                # Оформление
+                plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм, {int(rx_output.ebn0_db)} дБ")
+                plt.xlabel("Значение LLR")
+                plt.ylabel("Плотность вероятности")
+                plt.grid()
+                plt.legend()
+                # plt.xlim(-2.5, 2.5)
+                plt.show()
 
             pipeline.update_stats(ber_ruler, ber_ruler_uncoded, result, bits)
 

@@ -51,10 +51,10 @@ class GMSKDetector:
 
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        if (increment == np.zeros(16)).all():
-                name = 'res_113_without_increment.csv'
-        else:
-                name = 'res_113_with_increment.csv'
+        # if (increment == np.zeros(16)).all():
+        #         name = 'res_113_without_increment.csv'
+        # else:
+        #         name = 'res_113_with_increment.csv'
 
         # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
@@ -104,31 +104,31 @@ class GMSKDetector:
             new_path_metrics = old_path_metrics
             old_path_metrics = tmp
             
-            # Первые 8 и последние записываем в data_to_save
-            if symbol_num < 8 or symbol_num > 143:
-                # Прогоняем для каждого берста решетку с инкрементами и без них
-                # Учитываем, что счетчик один на разные потоки. Поэтому смотрим (х % 16)
-                # Интересует только первый берст (с и без инкрментами) каждого потока.
-                # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
-                if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
-                    print('______________________')
-                    print('number bit = ', symbol_num)
-                    for i in range (16):
-                        formatted_metric = f"{old_path_metrics[i]:.3f}"      
-                        data_to_save.append([symbol_num, i,  formatted_metric])
+            # # Первые 8 и последние записываем в data_to_save
+            # if symbol_num < 8 or symbol_num > 143:
+            #     # Прогоняем для каждого берста решетку с инкрементами и без них
+            #     # Учитываем, что счетчик один на разные потоки. Поэтому смотрим (х % 16)
+            #     # Интересует только первый берст (с и без инкрментами) каждого потока.
+            #     # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
+            #     if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
+            #         print('______________________')
+            #         print('number bit = ', symbol_num)
+            #         for i in range (16):
+            #             formatted_metric = f"{old_path_metrics[i]:.3f}"      
+            #             data_to_save.append([symbol_num, i,  formatted_metric])
 
-                if symbol_num == 147:
-                    self.counter +=1
+            #     if symbol_num == 147:
+            #        self.counter +=1
 
             symbol_num += 1
 
-        # запись листа в csv
-        # так как в counter добавили 1, то и проверки сдвинулись на 1
-        if ((self.counter % 16) == 1) or ((self.counter % 16) == 2):
-            with open(name, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f, delimiter=';') 
-                writer.writerow(['Number bit', 'State', 'Metric'])
-                writer.writerows(data_to_save)
+        # # запись листа в csv
+        # # так как в counter добавили 1, то и проверки сдвинулись на 1
+        # if ((self.counter % 16) == 1) or ((self.counter % 16) == 2):
+        #     with open(name, 'w', newline='', encoding='utf-8') as f:
+        #         writer = csv.writer(f, delimiter=';') 
+        #         writer.writerow(['Number bit', 'State', 'Metric'])
+        #         writer.writerows(data_to_save)
 
         return trans_table, old_path_metrics
     
@@ -310,7 +310,7 @@ class GMSKDetector:
                 trans_table, old_path_metrics = self.calc_metric(increment, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
-                trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
+                # trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
 
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)

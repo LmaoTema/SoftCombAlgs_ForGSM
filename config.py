@@ -25,7 +25,7 @@ BER = {
     "h2dB_max_step": 1.6,
     "h2dB_max": 100,
     
-    "prx_dbm_init": -118.0 + 5,
+    "prx_dbm_init": -118.0 + 2,
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
