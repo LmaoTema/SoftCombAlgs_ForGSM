@@ -32,13 +32,13 @@ class NonePipeline(BasePipeline):
         tx_signal = self.modulator.process(interleaved_bits)
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
-        for i in range (8):
-            print('______________________')
-            print('number = ', i, 'bit = ', tx_bits[i])
+        # for i in range (8):
+        #     print('______________________')
+        #     print('number = ', i, 'bit = ', tx_bits[i])
 
-        for i in range (144, 148):
-            print('______________________')
-            print('number = ', i, 'bit = ', tx_bits[i])
+        # for i in range (144, 148):
+        #     print('______________________')
+        #     print('number = ', i, 'bit = ', tx_bits[i])
 
         # Канал
         rx_output = self.channel.process(tx_signal)
@@ -49,7 +49,7 @@ class NonePipeline(BasePipeline):
         h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
         mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
-        detected_bits, llr = self.detector.process(eq, h, ebn0_val)
+        detected_bits, llr, detector_merge_distances = self.detector.process(eq, h, ebn0_val)
 
         # Графики для проверки llrов
         llr_0 = llr[tx_bits == 0]
@@ -82,6 +82,7 @@ class NonePipeline(BasePipeline):
             "rx_bits": detected_bits,
             "channel_output": rx_output,
             "llr_0": llr_0,
-            "llr_1": llr_1
+            "llr_1": llr_1,
+            "detector_merge_distances": detector_merge_distances
         }
 

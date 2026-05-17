@@ -78,6 +78,7 @@ def main():
 
     llr_0 = []
     llr_1 = []
+    detector_merge_distances = []
     counter = 0
     
     while not ber_ruler.isStop:
@@ -88,40 +89,69 @@ def main():
 
         while not ber_ruler.is_point_finished():
 
-            bits = np.random.randint(0, 2, frame_bits)
+            # bits = np.random.randint(0, 2, frame_bits)
+            # Одни и те же биты
+            bits = np.load('my_bits.npy')
 
             result = pipeline.process(bits)
 
             llr_0.append(result["llr_0"])
             llr_1.append(result["llr_1"])
+
+            detector_merge_distances.append(result["detector_merge_distances"])
+
+            is_llr = True
+            is_dist = False
+
             counter += 1
 
             if counter == 100:
                 rx_output = result["channel_output"]
-                llr_0 = np.concatenate(llr_0)
-                llr_1 = np.concatenate(llr_1)
 
-                # q25_0, q75_0 = np.percentile(llr_0, [25, 75])
-                # bin_width_0 = 2 * (q75_0 - q25_0) * len(llr_0) ** (-1/3)
-                # bins_0 = int((llr_0.max() - llr_0.min()) / bin_width_0)
+                if is_llr:
+                    llr_0 = np.concatenate(llr_0)
+                    llr_1 = np.concatenate(llr_1)
 
-                # q25_1, q75_1 = np.percentile(llr_1, [25, 75])
-                # bin_width_1 = 2 * (q75_1 - q25_1) * len(llr_1) ** (-1/3)
-                # bins_1 = int((llr_1.max() - llr_1.min()) / bin_width_1)
-                
+                    # q25_0, q75_0 = np.percentile(llr_0, [25, 75])
+                    # bin_width_0 = 2 * (q75_0 - q25_0) * len(llr_0) ** (-1/3)
+                    # bins_0 = int((llr_0.max() - llr_0.min()) / bin_width_0)
 
-                # Рисуем гистограммы
-                plt.hist(llr_0, bins=256, range=(-128, 128), density=True, color='blue', alpha=0.6, label='LLR для 0')
-                plt.hist(llr_1, bins=256, range=(-128, 128), density=True, color='red', alpha=0.6, label='LLR для 1')
+                    # q25_1, q75_1 = np.percentile(llr_1, [25, 75])
+                    # bin_width_1 = 2 * (q75_1 - q25_1) * len(llr_1) ** (-1/3)
+                    # bins_1 = int((llr_1.max() - llr_1.min()) / bin_width_1)
 
-                # Оформление
-                plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм, {int(rx_output.ebn0_db)} дБ")
-                plt.xlabel("Значение LLR")
-                plt.ylabel("Плотность вероятности")
-                plt.grid()
-                plt.legend()
-                # plt.xlim(-2.5, 2.5)
-                plt.show()
+                    # # Рисуем гистограммы (сырые значения)
+                    # plt.hist(llr_0, bins=bins_0, density=True, color='blue', alpha=0.6, label='LLR для 0')
+                    # plt.hist(llr_1, bins=bins_1, density=True, color='red', alpha=0.6, label='LLR для 1')
+                    
+
+                    # # Рисуем гистограммы (для сетки)
+                    plt.hist(llr_0, bins=255, range=(-127, 127), density=True, color='blue', alpha=0.6, label='LLR для 0')
+                    plt.hist(llr_1, bins=255, range=(-127, 127), density=True, color='red', alpha=0.6, label='LLR для 1')
+
+                    # Оформление
+                    plt.title(f'Распределение квантованных LLR на {int(rx_output.applied_signal_power_dbm)} дБм')
+                    plt.xlabel("Значение LLR")
+                    plt.ylabel("Плотность вероятности")
+                    plt.grid()
+                    plt.legend()
+                    # plt.xlim(-2.5, 2.5)
+                    plt.show()
+
+                if is_dist:
+                    dist = np.concatenate(detector_merge_distances)
+
+                    # Рисуем гистограммы (сырые значения)
+                    plt.hist(dist, bins=32, range=(0,32), density=True, color='blue', alpha=0.6, label='LLR для 0')
+
+                    # Оформление
+                    plt.title(f'Распределение расстояний на {int(rx_output.applied_signal_power_dbm)} дБм')
+                    plt.xlabel("Расстояние до слияния путей")
+                    plt.ylabel("Плотность вероятности")
+                    plt.grid()
+                    plt.legend()             
+                    plt.xlim(0, 32)
+                    plt.show()
 
             pipeline.update_stats(ber_ruler, ber_ruler_uncoded, result, bits)
 
