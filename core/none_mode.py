@@ -33,13 +33,14 @@ class NonePipeline(BasePipeline):
 
         # Канал
         rx_output = self.channel.process(tx_signal)
+        ebn0_val = getattr(rx_output, 'ebn0_db', 0)
 
         # Приемник
         rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
         h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
         mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
-        detected_bits, llr = self.detector.process(eq, h, rx_output.ebn0_db)
+        detected_bits, llr = self.detector.process(eq, h, ebn0_val)
 
         # Если есть мягкие решения, то в перемежитель подаем llr
         if self.detector.detector.type_demod == "vit_soft":
