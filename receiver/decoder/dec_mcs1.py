@@ -28,7 +28,7 @@ class MSC1Decoder:
         j = 0
         for i in range(117):  # 117 = 39*3, точное количество кодированных бит
             if i in forbidden or (i % 12 in punct12):
-                out.append(None)  # erasure
+                out.append(None)  # восстановление (заменяем выколотые на None)
             else:
                 if j >= len(bits):
                     raise ValueError("Header depuncturing: not enough input bits")
@@ -56,8 +56,7 @@ class MSC1Decoder:
         if not getattr(self, "is_working", True):
             return np.array(bits, dtype=int)
 
-        bits = bits[:-4]
-        header_coded = bits[:80]
+        header_coded = bits[:80] 
         data_coded = bits[80:452] 
         
         header_full = self._depuncture_header(header_coded)
@@ -65,12 +64,24 @@ class MSC1Decoder:
         
         h_dec = self.viterbi.decode(header_full)
         d_dec = self.viterbi.decode(data_full)
-
-        d_dec = d_dec[:-6]
         
+        self.afterdecoder = d_dec[:]
+
         h_dec = h_dec[:-self.header_crc]
-        d_dec = d_dec[:-self.data_crc]
+        d_dec = d_dec[:-18]
 
         frame = np.array(h_dec + d_dec, dtype=int)
+    
+        
+        self.header_coded_rx = header_coded
+        self.data_coded_rx = data_coded
 
+        self.header_full_rx = header_full
+        self.data_full_rx = data_full
+
+        self.header_decoded = h_dec
+        self.data_decoded = d_dec
+
+        self.frame_decoded = frame
+        
         return frame

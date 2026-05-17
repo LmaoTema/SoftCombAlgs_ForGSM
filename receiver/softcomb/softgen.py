@@ -118,7 +118,4 @@ class SoftGenerator:
         
         hard = np.where(llr < 0, -1, 1).astype(np.int8)
         
-        return {
-        'hard': hard,
-        'llr': llr
-    } 
+        return llr

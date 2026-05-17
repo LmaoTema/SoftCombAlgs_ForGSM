@@ -7,9 +7,12 @@ class PDMRCCombiner:
 
         hards = []
         reliabilities = []
-
-        hards = np.array([sector['hard'] for sector in sector_soft_list])
-        reliabilities = np.array(np.abs([sector['llr'] for sector in sector_soft_list]))
+        llrs = []
+        
+        llrs = np.array(sector_soft_list)
+        
+        reliabilities = np.array(np.abs(llrs))
+        hards = np.where(llrs < 0, -1, 1).astype(np.int8)
     
         metric = np.sum(reliabilities * hards, axis=0)
 

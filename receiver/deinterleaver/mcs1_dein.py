@@ -2,34 +2,29 @@ import numpy as np
 
 class MCS1Deinterleaver:
     def __init__(self):
-        self.bursts = 4       
-        self.data_len = 57    
-    def deinterleave_57(self, subblock):
-        out = np.zeros(57, dtype=int)
-        for k in range(57):
-            j = (49 * k) % 57
-            out[k] = subblock[j]  # или правильный порядок
-        return out
+        pass
+
+    def extract_data(self, burst):
+        left = burst[3:60]
+        right = burst[87:144]
+        return np.concatenate([left, right])  
 
     def process(self, bits):
 
-        if len(bits) == 624:
-            bursts = bits.reshape(self.bursts, 156)
-            bursts = bursts[:, :148]  
-        elif len(bits) == 592:
-            bursts = bits.reshape(self.bursts, 148)  
-        else:
-            raise ValueError("Input bits must be 624 or 592 bits")
+        bits = np.array(bits)
+        
+        bursts = bits.reshape(8, 148)
+        bursts_data = np.zeros((8, 114), dtype=int)
 
+        for b in range(8):
+            bursts_data[b] = self.extract_data(bursts[b])
 
-        subblocks = [np.zeros(57, dtype=int) for _ in range(8)]
+        output = np.zeros(456, dtype=int)
 
-        for b in range(self.bursts):
+        for k in range(456):
+            B = k % 8
+            j = 2 * ((49 * k) % 57) + ((k % 8) // 4)
 
-            first_data = bursts[b, :self.data_len]
-            second_data = bursts[b, self.data_len:2*self.data_len]
+            output[k] = bursts_data[B][j]
 
-            subblocks[b] = self.deinterleave_57(first_data)
-            subblocks[b + 4] = self.deinterleave_57(second_data)
-
-        return np.concatenate(subblocks)  
+        return output
