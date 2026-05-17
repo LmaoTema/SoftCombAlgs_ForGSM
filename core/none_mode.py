@@ -32,6 +32,14 @@ class NonePipeline(BasePipeline):
         tx_signal = self.modulator.process(interleaved_bits)
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
+        for i in range (8):
+            print('______________________')
+            print('number = ', i, 'bit = ', tx_bits[i])
+
+        for i in range (144, 148):
+            print('______________________')
+            print('number = ', i, 'bit = ', tx_bits[i])
+
         # Канал
         rx_output = self.channel.process(tx_signal)
 
