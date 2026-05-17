@@ -4,7 +4,7 @@ from .viterbi_manager import ViterbiManager
 class TCHFSDecoder:
 
     def __init__(self, vit_mode="vit_soft", combining_method="PDMRC"):
-
+        self.vit_mode = vit_mode
         self.combining_method = combining_method
         self.viterbi = ViterbiManager(
             constraint_length=5,
@@ -29,6 +29,9 @@ class TCHFSDecoder:
 
         class1a_crc = u[:50]        # 53 - 3 CRC
         class1b = u[53:185]         # 132 bits
+        
+        if self.vit_mode == "vit_soft":
+            class2 = (class2 <= 0).astype(np.uint8)
 
         frame = np.array(class1a_crc + class1b + list(class2))
 
