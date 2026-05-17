@@ -4,13 +4,13 @@ from receiver.decoder.dec_cs1 import CS1Decoder
 from receiver.decoder.dec_mcs1 import MSC1Decoder
 
 class ChannelDecoder(Block):
-    def __init__(self, scheme, vit_mode="vit_hard", is_working=True):
+    def __init__(self, scheme, vit_mode="vit_hard", combining_method="PDMRC", is_working=True):
         super().__init__(is_working)
         
         if scheme == "TCHFS":
-            self.decoder = TCHFSDecoder(vit_mode=vit_mode)  
+            self.decoder = TCHFSDecoder(vit_mode=vit_mode, combining_method=combining_method)  
         elif scheme == "CS1":
-            self.decoder = CS1Decoder(vit_mode=vit_mode)
+            self.decoder = CS1Decoder(vit_mode=vit_mode, combining_method=combining_method)
         elif scheme == "MCS1":
             self.decoder = MSC1Decoder()
         elif scheme == "MCS1":

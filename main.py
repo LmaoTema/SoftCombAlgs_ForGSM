@@ -25,12 +25,13 @@ from drawber.plot import plot_ber
 
 
 def build_pipeline(mode, channel_type, mode_cfg):
-
+    combining_method = simulation_params["combining_method"]
+    
     encoder = ChannelCoder(channel_type, is_working=block_params["encoding"]["is_working"])
     interleaver = Interleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
 
     deinterleaver = Deinterleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
-    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], is_working=block_params["encoding"]["is_working"])
+    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], combining_method=combining_method, is_working=block_params["encoding"]["is_working"])
 
     modulator = Modulation(channel_type, modulation_params, is_working=block_params["modulation"]["is_working"])
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])
@@ -42,8 +43,13 @@ def build_pipeline(mode, channel_type, mode_cfg):
 
     soft_llr_generator = SoftGenerator(simulation_params["channel_type"], simulation_params["channel_model"], profile=channel_params.get("profile", "TU"), is_working=True)
 
-    combiner = CombManager(method=simulation_params["combining_method"])
+    
 
+    if combining_method == "ACS":
+        combiner = None
+    else:
+        combiner = CombManager(method=combining_method)
+    
     channel = ChannelBlock(
         channel_model = simulation_params["channel_model"], 
         profile = channel_params.get("profile", "TU"),

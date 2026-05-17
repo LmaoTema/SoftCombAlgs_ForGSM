@@ -48,14 +48,15 @@ class FullPipeline(BasePipeline):
         detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal)
 
         sector_soft_list = [llr_1 , llr_2]
+        # Делаем деперемежение для каждого набора данных отдельно 
+        sector_deinterleaved = []
+        for llr in sector_soft_list:
+            deintl_llr = self.deinterleaver.process(llr)     
+            sector_deinterleaved.append(deintl_llr)
+            
+        decoded_bits = self.decoder.process(sector_deinterleaved)
 
-        combined_llr = self.combiner.combine(sector_soft_list)
-
-        deintl = self.deinterleaver.process(combined_llr)
-
-        decoded_bits = self.decoder.process(deintl)
-
-        detected_bits = (combined_llr < 0).astype(np.int8)
+        detected_bits = detected_bits_1
 
         return {
             "decoded_bits": decoded_bits,

@@ -5,7 +5,7 @@ simulation_params = {
     "channel_type": "TCHFS",
     "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "x_axis_metric": "dbm",     # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "none",  # "none"/ "half"/ "full"    
+    "processing_mode": "full",  # "none"/ "half"/ "full"    
     "combining_method": "PDMRC" # "PDMRC" / "SC" / "ACS"
 }
 
