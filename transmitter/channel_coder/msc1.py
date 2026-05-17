@@ -59,8 +59,7 @@ class MSC1HeaderCoder:
 
     def process(self, bits):
         bits = self.crc.encode(bits)
-        bits = prepend_last_bits(bits,6)
-        coded = self.conv.process(bits[:len(bits)-6])
+        coded = self.conv.process(bits)
         if self.use_puncture:
             coded = HeaderPuncturer().process(coded)
         return coded
@@ -80,6 +79,7 @@ class MSC1DataCoder:
     def process(self, bits):
         bits = self.crc.encode(bits)
         bits = bits + [0]*6
+        self.beforecoder = bits[:]
         coded = self.conv.process(bits)
         coded = self.punct.process(coded)
         return coded
@@ -97,12 +97,21 @@ class MSC1Coding:
         self.scheme = scheme
 
     def process(self, bits):
-        header = bits[:self.header_bits]
-        data = bits[self.header_bits:self.header_bits + self.data_bits]
+        header = bits[0:31]
+        data = bits[31:209]
+        
         h = self.header.process(header)
         d = self.data.process(data)
         
         coded = h + d
         coded = coded + [0]*4
+        
+        self.header_raw = header
+        self.data_raw = data
+
+        self.header_encoded = h
+        self.data_encoded = d
+
+        self.full_encoded = coded
         
         return coded 

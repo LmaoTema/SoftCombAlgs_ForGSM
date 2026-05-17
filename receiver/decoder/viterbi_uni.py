@@ -53,8 +53,8 @@ class ViterbiDecoder:
     def decode(self, coded_bits):
 
         coded_bits = np.array(coded_bits)
-        coded_bits = np.nan_to_num(coded_bits, nan=0.0, posinf=20.0, neginf=-20.0)
-        coded_bits = np.clip(coded_bits, -20, 20)
+        
+        coded_bits = np.where(np.equal(coded_bits, None), 0.0, coded_bits)
 
         n_steps = len(coded_bits) // self.n_outputs
         coded_bits = coded_bits.reshape((n_steps, self.n_outputs))
@@ -95,10 +95,9 @@ class ViterbiDecoder:
                         prev_bit[t, ns] = bit
 
             path_metric = new_metric
-
-
+        
+        # state = 0
         state = np.argmin(path_metric)  #  encoder terminates to zero state
-
         decoded = []
 
         for t in reversed(range(n_steps)):
@@ -109,5 +108,5 @@ class ViterbiDecoder:
             state = prev_state[t, state]
 
         decoded.reverse()
-
+        
         return decoded
