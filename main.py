@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from core.factory import create_pipeline
 
@@ -22,16 +21,17 @@ from receiver.softcomb.comb_manager import CombManager
 
 from drawber.berruler import BERRuler
 from drawber.berruler_half import HalfBERRuler
-from drawber.plot import plot_ber
+from drawber.plot import parse_and_plot
 
 
 def build_pipeline(mode, channel_type, mode_cfg):
-
+    combining_method = simulation_params["combining_method"]
+    
     encoder = ChannelCoder(channel_type, is_working=block_params["encoding"]["is_working"])
     interleaver = Interleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
 
     deinterleaver = Deinterleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
-    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], is_working=block_params["encoding"]["is_working"])
+    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], combining_method=combining_method, is_working=block_params["encoding"]["is_working"])
 
     modulator = Modulation(channel_type, modulation_params, is_working=block_params["modulation"]["is_working"])
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])
@@ -43,8 +43,13 @@ def build_pipeline(mode, channel_type, mode_cfg):
 
     soft_llr_generator = SoftGenerator(simulation_params["channel_type"], simulation_params["channel_model"], profile=channel_params.get("profile", "TU"), is_working=True)
 
-    combiner = CombManager(method=simulation_params["combining_method"])
+    
 
+    if combining_method == "ACS":
+        combiner = None
+    else:
+        combiner = CombManager(method=combining_method)
+    
     channel = ChannelBlock(
         channel_model = simulation_params["channel_model"], 
         profile = channel_params.get("profile", "TU"),
@@ -70,16 +75,11 @@ def main():
 
     if processing_mode == "half":
         rssi_points = (pipeline.soft_llr_generator.rssi_db)
-        ber_ruler = HalfBERRuler(rssi_points=rssi_points,**BER)
-        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points,enable_log=False,**BER)
+        ber_ruler = HalfBERRuler(rssi_points=rssi_points,**BER, type_ber = "coded")
+        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points,enable_log=False,**BER, type_ber="uncoded")
     else:
-        ber_ruler = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric)
-        ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, enable_log=False)
-
-    llr_0 = []
-    llr_1 = []
-    detector_merge_distances = []
-    counter = 0
+        ber_ruler = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, type_ber = "coded")
+        ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, type_ber="uncoded", enable_log=True)
     
     while not ber_ruler.isStop:
 
@@ -89,69 +89,9 @@ def main():
 
         while not ber_ruler.is_point_finished():
 
-            # bits = np.random.randint(0, 2, frame_bits)
-            # Одни и те же биты
-            bits = np.load('my_bits.npy')
+            bits = np.random.randint(0, 2, frame_bits)
 
             result = pipeline.process(bits)
-
-            llr_0.append(result["llr_0"])
-            llr_1.append(result["llr_1"])
-
-            detector_merge_distances.append(result["detector_merge_distances"])
-
-            is_llr = True
-            is_dist = False
-
-            counter += 1
-
-            if counter == 100:
-                rx_output = result["channel_output"]
-
-                if is_llr:
-                    llr_0 = np.concatenate(llr_0)
-                    llr_1 = np.concatenate(llr_1)
-
-                    # q25_0, q75_0 = np.percentile(llr_0, [25, 75])
-                    # bin_width_0 = 2 * (q75_0 - q25_0) * len(llr_0) ** (-1/3)
-                    # bins_0 = int((llr_0.max() - llr_0.min()) / bin_width_0)
-
-                    # q25_1, q75_1 = np.percentile(llr_1, [25, 75])
-                    # bin_width_1 = 2 * (q75_1 - q25_1) * len(llr_1) ** (-1/3)
-                    # bins_1 = int((llr_1.max() - llr_1.min()) / bin_width_1)
-
-                    # # Рисуем гистограммы (сырые значения)
-                    # plt.hist(llr_0, bins=bins_0, density=True, color='blue', alpha=0.6, label='LLR для 0')
-                    # plt.hist(llr_1, bins=bins_1, density=True, color='red', alpha=0.6, label='LLR для 1')
-                    
-
-                    # # Рисуем гистограммы (для сетки)
-                    plt.hist(llr_0, bins=255, range=(-127, 127), density=True, color='blue', alpha=0.6, label='LLR для 0')
-                    plt.hist(llr_1, bins=255, range=(-127, 127), density=True, color='red', alpha=0.6, label='LLR для 1')
-
-                    # Оформление
-                    plt.title(f'Распределение квантованных LLR на {int(rx_output.applied_signal_power_dbm)} дБм')
-                    plt.xlabel("Значение LLR")
-                    plt.ylabel("Плотность вероятности")
-                    plt.grid()
-                    plt.legend()
-                    # plt.xlim(-2.5, 2.5)
-                    plt.show()
-
-                if is_dist:
-                    dist = np.concatenate(detector_merge_distances)
-
-                    # Рисуем гистограммы (сырые значения)
-                    plt.hist(dist, bins=32, range=(0,32), density=True, color='blue', alpha=0.6, label='LLR для 0')
-
-                    # Оформление
-                    plt.title(f'Распределение расстояний на {int(rx_output.applied_signal_power_dbm)} дБм')
-                    plt.xlabel("Расстояние до слияния путей")
-                    plt.ylabel("Плотность вероятности")
-                    plt.grid()
-                    plt.legend()             
-                    plt.xlim(0, 32)
-                    plt.show()
 
             pipeline.update_stats(ber_ruler, ber_ruler_uncoded, result, bits)
 
@@ -162,7 +102,7 @@ def main():
     res_coded = ber_ruler.get_results()
     res_uncoded = ber_ruler_uncoded.get_results()
 
-    plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
+    parse_and_plot(ber_ruler.filename, channel_type=channel_type, axis_metric=axis_metric)
 
     return (
         res_coded["x"],

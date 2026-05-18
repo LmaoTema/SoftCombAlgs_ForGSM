@@ -8,6 +8,8 @@ class BERRuler:
         axis_metric = None,
         sweep_mode = None,
         
+        filename = "BER",
+
         h2dB_init = 0.0,
         h2dB_init_step = 0.4,
         h2dB_min_step = 0.1,
@@ -33,10 +35,16 @@ class BERRuler:
         enable_log = True,
         channel_type = "TCHFS",
         stop_by_min_BER = True,
+        type_ber = "coded",
         **kwargs,
     ):
         self.axis_metric = self._normalize_axis_metric(axis_metric if axis_metric is not None else sweep_mode)
         
+        self.filename = filename
+        # Стираем старые данные
+        with open(self.filename + '.txt', "w") as f:
+            pass
+
         self.h2dB = h2dB_init       
         self.h2dB_step = h2dB_init_step
         self.h2dB_min_step = h2dB_min_step
@@ -65,7 +73,9 @@ class BERRuler:
         self.channel_type = channel_type
         self.stop_by_min_BER = stop_by_min_BER
 
-        tmp_blocks = self._slice_blocks(np.zeros(1)) 
+        self.type_ber = type_ber
+
+        tmp_blocks = self._slice_blocks(np.zeros(1), type_ber=self.type_ber) 
         self.stats = {
             name: {
                 "NumTrBits": 0, 
@@ -129,7 +139,10 @@ class BERRuler:
         }
         return aliases.get(normalized, "dbm")
 
-    def _slice_blocks(self, bits):
+    def _slice_blocks(self, bits, type_ber):
+        # Так как channel_type != UNCODED, но на графиках хотим видеть, то смотрим на флаг type_ber
+        if type_ber == "uncoded":
+            return {"uncoded": bits}
         if self.channel_type in {"UNCODED", "RAW", "FULL"}:
             return {"full": bits[:]}
         if self.channel_type == "TCHFS":
@@ -158,8 +171,8 @@ class BERRuler:
         return self.prx_dbm
 
     def update_frame(self, tx_bits, rx_bits, channel_output = None):
-        tx_blocks = self._slice_blocks(tx_bits)
-        rx_blocks = self._slice_blocks(rx_bits)
+        tx_blocks = self._slice_blocks(tx_bits, self.type_ber)
+        rx_blocks = self._slice_blocks(rx_bits, self.type_ber)
 
         for name, tx_blk in tx_blocks.items():
             rx_blk = rx_blocks[name]
@@ -265,7 +278,12 @@ class BERRuler:
             if self.enable_log:
                 ber_label = f"{ber:.3e}" if np.isfinite(ber) else "not-observed"
                 fer_label = f"{fer:.3e}" if np.isfinite(fer) else "not-observed"
-                print(f"{ts} | {x_label} | {name} BER={ber_label} | FER={fer_label} | Frames={stat['NumTrFrames']}")
+                log_string = (f"{ts} | {x_label} | {name} BER={ber_label} | FER={fer_label} | Frames={stat['NumTrFrames']}")
+
+                print(log_string)
+
+                with open(self.filename + '.txt', "a", encoding="utf-8") as f:
+                    f.write(log_string + "\n")
         
         self._append_channel_metric("average_channel_power", default = None)
         self._append_channel_metric("applied_signal_power_dbm", default = None)

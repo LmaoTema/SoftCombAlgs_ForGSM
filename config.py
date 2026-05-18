@@ -19,7 +19,9 @@ block_params = {
 }
 
 BER = {
-    "h2dB_init": 100,
+    "filename": "BER_to_file",
+    
+    "h2dB_init": 0,
     "h2dB_init_step": 0.4,
     "h2dB_min_step": 0.1,
     "h2dB_max_step": 1.6,
@@ -29,7 +31,7 @@ BER = {
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -108.0,
+    "prx_dbm_max": -110.0,
 
     "min_BER": 1e-3,
     "min_FER": 1,
