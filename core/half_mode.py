@@ -18,13 +18,17 @@ class HalfPipeline(BasePipeline):
 
         coded_bits = self.encoder.process(bits.tolist())
 
-        coded_bits = np.array(coded_bits)
-
-        sector_soft_list = self.soft_llr_generator.get_soft_decisions(coded_bits, [self.point_index], num_sectors=2)[0]
-
-        combined_llr = self.combiner.combine(sector_soft_list)
-
-        decoded_bits = self.decoder.process(combined_llr)
+        interleaved_bits = np.array(self.interleaver.process(coded_bits))
+        interleaved_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
+        
+        sector_soft_list = self.soft_llr_generator.get_soft_decisions(interleaved_bits, [self.point_index], num_sectors=2)[0]
+        
+        sector_deinterleaved = []
+        for llr in sector_soft_list:
+            deintl_llr = self.deinterleaver.process(llr)     
+            sector_deinterleaved.append(deintl_llr)
+            
+        decoded_bits = self.decoder.process(sector_deinterleaved)
         
         uncoded_ber = self.soft_llr_generator.get_uncoded_ber(self.point_index)
 
