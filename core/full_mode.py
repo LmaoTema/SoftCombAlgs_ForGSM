@@ -21,13 +21,13 @@ class FullPipeline(BasePipeline):
             channel_output=result.get("channel_output")
         )
 
-    def rx_detector(self, rx_output, tx_signal):
+    def rx_detector(self, rx_output, tx_signal, ebn0_val):
 
         rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
         h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
         mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
-        detected_bits, llr = self.detector.process(eq, h, rx_output.ebn0_db)
+        detected_bits, llr = self.detector.process(eq, h, ebn0_val)
 
         return detected_bits, llr
     
@@ -41,11 +41,12 @@ class FullPipeline(BasePipeline):
 
         # Первый канал
         rx_output_1 = self.channel.process(tx_signal)
-        detected_bits_1, llr_1 = self.rx_detector(rx_output_1, tx_signal)
+        ebn0_val = getattr(rx_output_1, 'ebn0_db', 0)
+        detected_bits_1, llr_1 = self.rx_detector(rx_output_1, tx_signal, ebn0_val)
 
         # Второй канал (иммитируем приём для второго сектора)
         rx_output_2 = self.channel.process(tx_signal)
-        detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal)
+        detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal, ebn0_val)
 
         sector_soft_list = [llr_1 , llr_2]
         # Делаем деперемежение для каждого набора данных отдельно 

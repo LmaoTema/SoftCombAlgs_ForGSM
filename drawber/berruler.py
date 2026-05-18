@@ -175,30 +175,32 @@ class BERRuler:
         if channel_output is None:
             return
 
-        if channel_output.average_channel_power is not None:
+        if getattr(channel_output, "average_channel_power", None) is not None:
             self._channel_metric_accumulator["average_channel_power"].append(channel_output.average_channel_power)
-        if channel_output.applied_signal_power_dbm is not None:
+        if getattr(channel_output, "applied_signal_power_dbm", None) is not None:
             self._channel_metric_accumulator["applied_signal_power_dbm"].append(channel_output.applied_signal_power_dbm)
-        if channel_output.measured_signal_power_dbm is not None:
+        if getattr(channel_output, "measured_signal_power_dbm", None) is not None:
             self._channel_metric_accumulator["measured_signal_power_dbm"].append(channel_output.measured_signal_power_dbm)
-        if channel_output.noise_power_dbm is not None:
+        if getattr(channel_output, "noise_power_dbm", None) is not None:
             self._channel_metric_accumulator["noise_power_dbm"].append(channel_output.noise_power_dbm)
-        if channel_output.noise_variance_per_sample is not None:
+        if getattr(channel_output, "noise_variance_per_sample", None) is not None:
             self._channel_metric_accumulator["noise_variance_per_sample"].append(channel_output.noise_variance_per_sample)
-        if channel_output.snr_db is not None:
+        if getattr(channel_output, "snr_db", None) is not None:
             self._channel_metric_accumulator["snr_db"].append(channel_output.snr_db)
-        if channel_output.ebn0_db is not None:
+        if getattr(channel_output, "ebn0_db", None) is not None:
             self._channel_metric_accumulator["ebn0_db"].append(channel_output.ebn0_db)
-        if channel_output.carrier_to_noise_db is not None:
+        if getattr(channel_output, "carrier_to_noise_db", None) is not None:
             self._channel_metric_accumulator["carrier_to_noise_db"].append(channel_output.carrier_to_noise_db)
-        if channel_output.symbol_rate_hz is not None:
+        if getattr(channel_output, "symbol_rate_hz", None) is not None:
             self._channel_metric_accumulator["symbol_rate_hz"].append(channel_output.symbol_rate_hz)
-        if channel_output.bit_rate_hz is not None:
+        if getattr(channel_output, "bit_rate_hz", None) is not None:
             self._channel_metric_accumulator["bit_rate_hz"].append(channel_output.bit_rate_hz)
-        self._channel_metric_accumulator["outage"].append(bool(channel_output.outage))
-        axis_value = channel_output.metadata.get("axis_value")
-        if axis_value is not None:
-            self._channel_metric_accumulator["axis_values"].append(float(axis_value))
+        if getattr(channel_output, "outage", None) is not None:
+            self._channel_metric_accumulator["outage"].append(bool(channel_output.outage))
+        if getattr(channel_output, "metadata", None) is not None:
+            axis_value = channel_output.metadata.get("axis_value")
+            if axis_value is not None:
+                self._channel_metric_accumulator["axis_values"].append(float(axis_value))
             
     def is_point_finished(self):
         total_tr_bits = sum(s["NumTrBits"] for s in self.stats.values())
