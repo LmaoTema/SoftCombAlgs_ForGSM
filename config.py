@@ -2,11 +2,12 @@ import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
-    "channel_type": "TCHFS",
-    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "x_axis_metric": "dbm",     # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "full",  # "none"/ "half"/ "full"    
-    "combining_method": "PDMRC" # "PDMRC" / "SC" / "ACS"
+    "channel_type": "CS1",
+    "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
+    "processing_mode": "full",      # "none"/ "half"/ "full"    
+    "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
+    "file_name": "SC"
 }
 
 block_params = {
@@ -49,14 +50,14 @@ BER = {
 }
 
 mode_params = {
-    "TCHFS": {
-        "scheme": "TCHFS",
-        "frame_bits": 260
+    # "TCHFS": {
+    #     "scheme": "TCHFS",
+    #     "frame_bits": 260
+    # },
+   "CS1": {
+       "scheme": "CS1",
+       "frame_bits": 184
     },
-#    "CS1": {
-#        "scheme": "CS1",
-#        "frame_bits": 184
-#     },
     #"MCS1": {
     #    "scheme": "MCS1",
      #   "frame_bits": MSC_PARAMS["MCS1"]["header_bits"] + MSC_PARAMS["MCS1"]["data_bits"]

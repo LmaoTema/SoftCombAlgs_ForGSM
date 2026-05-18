@@ -21,8 +21,7 @@ from receiver.softcomb.comb_manager import CombManager
 
 from drawber.berruler import BERRuler
 from drawber.berruler_half import HalfBERRuler
-from drawber.plot import plot_ber
-from drawber.plot_half import plot_ber_half
+from drawber.res_saver import save_ber_results
 
 
 def build_pipeline(mode, channel_type, mode_cfg):
@@ -102,8 +101,10 @@ def main():
 
     res_coded = ber_ruler.get_results()
     res_uncoded = ber_ruler_uncoded.get_results()
-
-    plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
+    
+    # передаём результирующие параметры для сохранения
+    save_ber_results(res_coded, res_uncoded,simulation_params)
+    # plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
 
     return (
         res_coded["x"],
