@@ -26,26 +26,6 @@ class GMSKDetector:
 
     # Определяем влияние предыдущих бит для каждого состояния
     def calc_increment(self, rhh):
-        # С учетом деротации:
-        # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
-
-        # increment = np.zeros(16)
-        # increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
-        # increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
-        # increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
-        # increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
-        # increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
-        # increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
-        # increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
-        # increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
-        # increment[8] = - increment[7]
-        # increment[9] = - increment[6]
-        # increment[10] = - increment[5]
-        # increment[11] = - increment[4]
-        # increment[12] = - increment[3]
-        # increment[13] = - increment[2]
-        # increment[14] = - increment[1]
-        # increment[15] = - increment[0]
 
         increment = np.zeros(16)
         increment[0] = rhh[4] + rhh[3] + rhh[2] + rhh[1]
@@ -68,15 +48,39 @@ class GMSKDetector:
 
         return increment
 
+    def calc_increment_2(self, rhh):
+        # С учетом деротации:
+        # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
+
+        increment = np.zeros(16)
+        increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
+        increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
+        increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
+        increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
+        increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
+        increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
+        increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
+        increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
+        increment[8] = - increment[7]
+        increment[9] = - increment[6]
+        increment[10] = - increment[5]
+        increment[11] = - increment[4]
+        increment[12] = - increment[3]
+        increment[13] = - increment[2]
+        increment[14] = - increment[1]
+        increment[15] = - increment[0]
+
+        return increment
+    
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
         is_to_table  = False
 
         if is_to_table:
-            if (increment == np.zeros(16)).all():
-                    name = 'res_115_ch_without_incr.csv'
+            if ((self.counter % 16) == 0):
+                    name = 'res_113_ch_new_incr.csv'
             else:
-                    name = 'res_115_ch_with_incr.csv'
+                    name = 'res_113_ch_old_incr.csv'
 
         # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
@@ -332,16 +336,17 @@ class GMSKDetector:
                     increment = np.zeros(16)
                 else:
                     rhh = self.calc_rhh(h[b])
-                    increment = self.calc_increment(rhh)
+                    increment_new = self.calc_increment(rhh)
+                    increment_old = self.calc_increment_2(rhh)
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]
 
                 # Строим решетку с инкрменетами
-                trans_table, old_path_metrics = self.calc_metric(increment, sampled_burst, start_state=0)
+                trans_table, old_path_metrics = self.calc_metric(increment_new, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
-                # trans_table_2, old_path_metrics_2 = self.calc_metric(np.zeros(16), sampled_burst, start_state=0)
+                trans_table_2, old_path_metrics_2 = self.calc_metric(increment_old, sampled_burst, start_state=0)
 
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)

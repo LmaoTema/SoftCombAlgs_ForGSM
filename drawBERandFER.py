@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 ONLY_CURVES = None
 
 # plot_one_file = "No" - строит ВСЕ файлы | plot_one_file = "Название" - строит только файл с таким названием
-plot_one_file = "No"
+plot_one_file = "old increment hd awgn"
 
 def normalize_axis_metric(axis_metric):
 
@@ -23,7 +23,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("Results")
+results_path = Path("res_compare_new_and_old")
 
 csv_files = list(results_path.glob("*.csv"))
 

@@ -106,7 +106,7 @@ def main():
 
             detector_merge_distances.append(result["detector_merge_distances"])
 
-            is_llr = True
+            is_llr = False
             is_dist = False
 
             counter += 1
