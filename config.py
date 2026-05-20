@@ -2,12 +2,12 @@ import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
-    "channel_type": "CS1",
+    "channel_type": "TCHFS",
     "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "full",      # "none"/ "half"/ "full"    
+    "processing_mode": "none",      # "none"/ "half"/ "full"    
     "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "SC"
+    "file_name": "new increment hd awgn"
 }
 
 block_params = {
@@ -15,8 +15,8 @@ block_params = {
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
     "channel":        {"is_working": True},
-    "matched_filter": {"is_working": False},
-    "equalizer":      {"is_working": False},
+    "matched_filter": {"is_working": True},
+    "equalizer":      {"is_working": True},
 }
 
 BER = {
@@ -27,12 +27,12 @@ BER = {
     "h2dB_max": 20.0,
     
     "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 2.0,
+    "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -102.0,
+    "prx_dbm_max": -109.0,
 
-    "min_BER": 1e-3,
+    "min_BER": 1e-4,
     "min_FER": 1,
     
     "min_NumErBits": 500,
@@ -46,18 +46,18 @@ BER = {
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": True
+    "stop_by_min_BER": False
 }
 
 mode_params = {
-    # "TCHFS": {
-    #     "scheme": "TCHFS",
-    #     "frame_bits": 260
-    # },
-   "CS1": {
-       "scheme": "CS1",
-       "frame_bits": 184
+    "TCHFS": {
+        "scheme": "TCHFS",
+        "frame_bits": 260
     },
+#    "CS1": {
+#        "scheme": "CS1",
+#        "frame_bits": 184
+#     },
     #"MCS1": {
     #    "scheme": "MCS1",
      #   "frame_bits": MSC_PARAMS["MCS1"]["header_bits"] + MSC_PARAMS["MCS1"]["data_bits"]
@@ -75,7 +75,7 @@ modulation_params = {
     "h": 0.5,
     "gaus_duration": 4,
     "rect_duration": 1,
-    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
+    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
