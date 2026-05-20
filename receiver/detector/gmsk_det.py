@@ -224,7 +224,7 @@ class GMSKDetector:
 
         y_k_prev = np.zeros(y_k.size, dtype=complex)
         y_k_prev[1:] = y_k[:-1]
-        y_k_prev[0] = 1 + 0j
+        y_k_prev[0] = 0 + 0j
 
         delta_phi = np.angle(y_k * np.conj(y_k_prev))
 
