@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 
 ONLY_CURVES = None
 
+# plot_one_file = "No" - строит ВСЕ файлы | plot_one_file = "Название" - строит только файл с таким названием
+plot_one_file = "No"
+
 def normalize_axis_metric(axis_metric):
 
     normalized = str(axis_metric).lower()
@@ -23,6 +26,12 @@ def normalize_axis_metric(axis_metric):
 results_path = Path("Results")
 
 csv_files = list(results_path.glob("*.csv"))
+
+if plot_one_file != "No":
+    for f in csv_files:
+        if plot_one_file == f.stem:
+            csv_files = [f]
+            break
 
 if not csv_files:
 
