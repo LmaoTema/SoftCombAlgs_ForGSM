@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 ONLY_CURVES = None
 
 # plot_one_file = "No" - строит ВСЕ файлы | plot_one_file = "Название" - строит только файл с таким названием
-plot_one_file = "old increment hd awgn"
+plot_one_file = "No"
 
 def normalize_axis_metric(axis_metric):
 

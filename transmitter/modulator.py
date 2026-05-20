@@ -1,5 +1,6 @@
 import numpy as np
 from core.block import Block
+import matplotlib.pyplot as plt
 
 
 class Modulation(Block):
@@ -47,6 +48,9 @@ class GMSKModulation:
         # Диф.кодирование
         d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
+
+        # bits[4:8] = np.zeros(4)
+        # alpha = 1 - 2 * bits
 
         return alpha
 
@@ -102,7 +106,10 @@ class GMSKModulation:
         # Убираем задержку на 2T, вносимую гауссовским филльтром
         # Сдвиг на 1 отсчет, чтобы пик текущего символа был в конце соответствующего символьного интервала 
         shift = (gaus_duration + rect_duration) / 2 - 0.5
+
         phi_shift = phi[int(shift * sps) + 1 : - int(shift * sps) + 1]
+
+        # phi_shift = phi[int(shift * sps) : - int(shift * sps)]
 
         return phi_shift
 
@@ -127,6 +134,26 @@ class GMSKModulation:
             alpha = self.differential_encoding(burst)
             phi = self.calc_phase(alpha, q_gmsk)
             signal_envelope = np.exp(1j * phi)
+
+            is_plot = True
+            
+            if is_plot:
+                fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+
+                ax1.step(np.arange(10), alpha[0:10], where="post", lw=3)
+                ax1.set_ylabel("Symbols")
+                ax1.grid()
+
+                ax2.plot(np.arange(40) / 4, phi[:40], lw=3)
+                ax2.set_ylabel("Phase")
+                ax2.grid()
+
+                ax3.plot(np.arange(40) / 4, signal_envelope[:40], lw=3)
+                ax3.set_ylabel("Signal envelope")
+                ax3.grid()
+
+                plt.tight_layout()
+                plt.show()
             
             # Добавляем сигнал и защитный интервал
             all_signals.append(signal_envelope)

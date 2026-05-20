@@ -25,7 +25,7 @@ class GMSKDetector:
         return rhh
 
     # Определяем влияние предыдущих бит для каждого состояния
-    def calc_increment(self, rhh):
+    def calc_new_increment(self, rhh):
 
         increment = np.zeros(16)
         increment[0] = rhh[4] + rhh[3] + rhh[2] + rhh[1]
@@ -45,10 +45,9 @@ class GMSKDetector:
         increment[14] = - increment[1]
         increment[15] = - increment[0]
 
-
         return increment
 
-    def calc_increment_2(self, rhh):
+    def calc_old_increment(self, rhh):
         # С учетом деротации:
         # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
 
@@ -74,13 +73,13 @@ class GMSKDetector:
     
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        is_to_table  = False
+        is_to_table  = True
 
         if is_to_table:
             if ((self.counter % 16) == 0):
-                    name = 'res_113_ch_new_incr.csv'
+                    name = 'res_wo_ch_new_incr.csv'
             else:
-                    name = 'res_113_ch_old_incr.csv'
+                    name = 'res_wo_ch_old_incr.csv'
 
         # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
@@ -139,7 +138,7 @@ class GMSKDetector:
                     # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
                     if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
                         for i in range (16):
-                            formatted_metric = f"{old_path_metrics[i]:.3f}"      
+                            formatted_metric = f"{old_path_metrics[i]:.2f}"      
                             data_to_save.append([symbol_num, i,  formatted_metric])
 
                     if symbol_num == 147:
@@ -336,8 +335,8 @@ class GMSKDetector:
                     increment = np.zeros(16)
                 else:
                     rhh = self.calc_rhh(h[b])
-                    increment_new = self.calc_increment(rhh)
-                    increment_old = self.calc_increment_2(rhh)
+                    increment_new = self.calc_new_increment(rhh)
+                    increment_old = self.calc_old_increment(rhh)
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]
