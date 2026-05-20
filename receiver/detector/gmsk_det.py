@@ -224,7 +224,7 @@ class GMSKDetector:
 
         y_k_prev = np.zeros(y_k.size, dtype=complex)
         y_k_prev[1:] = y_k[:-1]
-        y_k_prev[0] = 0 + 0j
+        y_k_prev[0] = 1 + 0j
 
         delta_phi = np.angle(y_k * np.conj(y_k_prev))
 
@@ -234,7 +234,7 @@ class GMSKDetector:
         d_curr = ((1 - alpha) / 2).astype(int)
 
         burst_bits = np.zeros(d_curr.size, dtype=int)
-        d_prev = 1
+        d_prev = 0
         for i in range(d_curr.size):
             burst_bits[i] = d_curr[i] ^ d_prev
             d_prev = burst_bits[i]
