@@ -7,14 +7,14 @@ simulation_params = {
     "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode": "none",      # "none"/ "half"/ "full"    
     "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "new_increment_hd_awgn"
+    "file_name": "old_increment"
 }
 
 block_params = {
     "encoding":       {"is_working": True},
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
-    "channel":        {"is_working": False},
+    "channel":        {"is_working": True},
     "matched_filter": {"is_working": True},
     "equalizer":      {"is_working": True},
 }
@@ -26,8 +26,8 @@ BER = {
     "h2dB_max_step": 1.6,
     "h2dB_max": 100,
     
-    "prx_dbm_init": -118.0 + 3 + 2,
-    "prx_dbm_init_step": 1.0,
+    "prx_dbm_init": -110.0,
+    "prx_dbm_init_step": 2.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
     "prx_dbm_max": -108.0,
