@@ -49,8 +49,8 @@ class GMSKModulation:
         d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
 
-        # bits[4:8] = np.zeros(4)
-        # alpha = 1 - 2 * bits
+        bits[4:8] = np.zeros(4)
+        alpha = 1 - 2 * bits
 
         return alpha
 
@@ -109,7 +109,7 @@ class GMSKModulation:
 
         phi_shift = phi[int(shift * sps) + 1 : - int(shift * sps) + 1]
 
-        # phi_shift = phi[int(shift * sps) : - int(shift * sps)]
+        phi_shift = phi[int(shift * sps) : - int(shift * sps)]
 
         return phi_shift
 
@@ -138,7 +138,7 @@ class GMSKModulation:
             is_plot = True
             
             if is_plot:
-                fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
 
                 ax1.step(np.arange(10), alpha[0:10], where="post", lw=3)
                 ax1.set_ylabel("Symbols")
@@ -148,9 +148,13 @@ class GMSKModulation:
                 ax2.set_ylabel("Phase")
                 ax2.grid()
 
-                ax3.plot(np.arange(40) / 4, signal_envelope[:40], lw=3)
-                ax3.set_ylabel("Signal envelope")
+                ax3.plot(np.arange(40) / 4, np.real(signal_envelope[:40]), lw=3)
+                ax3.set_ylabel("Re [Signal envelope]")
                 ax3.grid()
+
+                ax4.plot(np.arange(40) / 4, np.imag(signal_envelope[:40]), lw=3)
+                ax4.set_ylabel("Im [Signal envelope]")
+                ax4.grid()
 
                 plt.tight_layout()
                 plt.show()
