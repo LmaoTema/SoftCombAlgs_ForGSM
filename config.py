@@ -3,10 +3,11 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "TCHFS",
-    "channel_model": "awgn",    # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "x_axis_metric": "dbm",     # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "none",  # "none"/ "half"/ "full"    
-    "combining_method": "PDMRC" # "PDMRC" / "SC" / "ACS"
+    "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
+    "processing_mode": "none",      # "none"/ "half"/ "full"    
+    "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
+    "file_name": "new increment hd awgn"
 }
 
 block_params = {
@@ -31,7 +32,7 @@ BER = {
     "prx_dbm_max_step": 2.0,
     "prx_dbm_max": -108.0,
 
-    "min_BER": 1e-3,
+    "min_BER": 1e-4,
     "min_FER": 1,
     
     "min_NumErBits": 500,
@@ -45,7 +46,7 @@ BER = {
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": True
+    "stop_by_min_BER": False
 }
 
 mode_params = {
@@ -73,8 +74,8 @@ modulation_params = {
     "sps": 4,
     "h": 0.5,
     "gaus_duration": 4,
-    "rect_duration": 1  ,
-    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
+    "rect_duration": 1,
+    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {

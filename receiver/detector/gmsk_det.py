@@ -29,15 +29,33 @@ class GMSKDetector:
         # С учетом деротации:
         # [+Im(s), -Re(s), -Im(s), +Re(s)] = [s*j^(-1), s*j^(-2), s*j^(-3), s*j^(-4)]
 
+        # increment = np.zeros(16)
+        # increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
+        # increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
+        # increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
+        # increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
+        # increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
+        # increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
+        # increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
+        # increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
+        # increment[8] = - increment[7]
+        # increment[9] = - increment[6]
+        # increment[10] = - increment[5]
+        # increment[11] = - increment[4]
+        # increment[12] = - increment[3]
+        # increment[13] = - increment[2]
+        # increment[14] = - increment[1]
+        # increment[15] = - increment[0]
+
         increment = np.zeros(16)
-        increment[0] = rhh[4].real - rhh[3].imag - rhh[2].real + rhh[1].imag
-        increment[1] = rhh[4].real - rhh[3].imag - rhh[2].real - rhh[1].imag
-        increment[2] = rhh[4].real - rhh[3].imag + rhh[2].real + rhh[1].imag
-        increment[3] = rhh[4].real - rhh[3].imag + rhh[2].real - rhh[1].imag
-        increment[4] = rhh[4].real + rhh[3].imag - rhh[2].real + rhh[1].imag
-        increment[5] = rhh[4].real + rhh[3].imag - rhh[2].real - rhh[1].imag
-        increment[6] = rhh[4].real + rhh[3].imag + rhh[2].real + rhh[1].imag
-        increment[7] = rhh[4].real + rhh[3].imag + rhh[2].real - rhh[1].imag
+        increment[0] = rhh[4] + rhh[3] + rhh[2] + rhh[1]
+        increment[1] = rhh[4] + rhh[3] + rhh[2] - rhh[1]
+        increment[2] = rhh[4] + rhh[3] - rhh[2] + rhh[1]
+        increment[3] = rhh[4] + rhh[3] - rhh[2] - rhh[1]
+        increment[4] = rhh[4] - rhh[3] + rhh[2] + rhh[1]
+        increment[5] = rhh[4] - rhh[3] + rhh[2] - rhh[1]
+        increment[6] = rhh[4] - rhh[3] - rhh[2] + rhh[1]
+        increment[7] = rhh[4] - rhh[3] - rhh[2] - rhh[1]
         increment[8] = - increment[7]
         increment[9] = - increment[6]
         increment[10] = - increment[5]
@@ -46,6 +64,7 @@ class GMSKDetector:
         increment[13] = - increment[2]
         increment[14] = - increment[1]
         increment[15] = - increment[0]
+
 
         return increment
 
@@ -277,7 +296,7 @@ class GMSKDetector:
         d_curr = ((1 - alpha) / 2).astype(int)
 
         burst_bits = np.zeros(d_curr.size, dtype=int)
-        d_prev = 1
+        d_prev = 0
         for i in range(d_curr.size):
             burst_bits[i] = d_curr[i] ^ d_prev
             d_prev = burst_bits[i]

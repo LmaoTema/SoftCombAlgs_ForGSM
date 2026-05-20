@@ -1,6 +1,6 @@
 from receiver.softcomb.pdmrc import PDMRCCombiner
 from receiver.softcomb.seleccomb import SCCombiner
-from receiver.decoder.dec_manager import ChannelDecoder
+
 
 class CombManager:
     def __init__(self, method):
@@ -11,10 +11,6 @@ class CombManager:
 
         elif method == "SC":
             self.combiner = SCCombiner()
-
-        elif method == "ACS":
-            self.combiner = ChannelDecoder() 
-
         else:
             raise ValueError(f"Unknown combining method: {method}")
 

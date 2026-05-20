@@ -1,13 +1,13 @@
 import numpy as np
-from .viterbi_uni import ViterbiDecoder
+from .viterbi_manager import ViterbiManager
 
 class CS1Decoder:
 
-    def __init__(self, vit_mode="vit_hard"):
+    def __init__(self, vit_mode="vit_soft", combining_method="PDMRC"):
 
-        self.viterbi = ViterbiDecoder(
+        self.viterbi = ViterbiManager(
             constraint_length=5,
-            polynomials=[0x13, 0x1B], mode=vit_mode
+            polynomials=[0x13, 0x1B], combining_method=combining_method, mode=vit_mode
         )
 
     def process(self, bits):

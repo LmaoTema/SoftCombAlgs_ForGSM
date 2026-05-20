@@ -22,16 +22,17 @@ from receiver.softcomb.comb_manager import CombManager
 
 from drawber.berruler import BERRuler
 from drawber.berruler_half import HalfBERRuler
-from drawber.plot import plot_ber
+from drawber.res_saver import save_ber_results
 
 
 def build_pipeline(mode, channel_type, mode_cfg):
-
+    combining_method = simulation_params["combining_method"]
+    
     encoder = ChannelCoder(channel_type, is_working=block_params["encoding"]["is_working"])
     interleaver = Interleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
 
     deinterleaver = Deinterleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
-    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], is_working=block_params["encoding"]["is_working"])
+    decoder = ChannelDecoder(scheme=mode_cfg["scheme"], vit_mode=modulation_params["type_demod"], combining_method=combining_method, is_working=block_params["encoding"]["is_working"])
 
     modulator = Modulation(channel_type, modulation_params, is_working=block_params["modulation"]["is_working"])
     detector = Detector(channel_type, modulation_params, block_params, is_working=block_params["modulation"]["is_working"])
@@ -43,8 +44,13 @@ def build_pipeline(mode, channel_type, mode_cfg):
 
     soft_llr_generator = SoftGenerator(simulation_params["channel_type"], simulation_params["channel_model"], profile=channel_params.get("profile", "TU"), is_working=True)
 
-    combiner = CombManager(method=simulation_params["combining_method"])
+    
 
+    if combining_method == "ACS":
+        combiner = None
+    else:
+        combiner = CombManager(method=combining_method)
+    
     channel = ChannelBlock(
         channel_model = simulation_params["channel_model"], 
         profile = channel_params.get("profile", "TU"),
@@ -70,8 +76,8 @@ def main():
 
     if processing_mode == "half":
         rssi_points = (pipeline.soft_llr_generator.rssi_db)
-        ber_ruler = HalfBERRuler(rssi_points=rssi_points,**BER)
-        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points,enable_log=False,**BER)
+        ber_ruler = HalfBERRuler(rssi_points=rssi_points, channel_type=channel_type, **BER)
+        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points,enable_log=False, channel_type=channel_type,**BER)
     else:
         ber_ruler = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric)
         ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, enable_log=False)
@@ -161,8 +167,10 @@ def main():
 
     res_coded = ber_ruler.get_results()
     res_uncoded = ber_ruler_uncoded.get_results()
-
-    plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
+    
+    # передаём результирующие параметры для сохранения
+    save_ber_results(res_coded, res_uncoded,simulation_params)
+    # plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
 
     return (
         res_coded["x"],
