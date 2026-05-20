@@ -7,7 +7,7 @@ simulation_params = {
     "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode": "none",      # "none"/ "half"/ "full"    
     "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "new increment hd awgn"
+    "file_name": "old_increment"
 }
 
 block_params = {
@@ -27,7 +27,7 @@ BER = {
     "h2dB_max": 20.0,
     
     "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 1.0,
+    "prx_dbm_init_step": 2.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 2.0,
     "prx_dbm_max": -109.0,
