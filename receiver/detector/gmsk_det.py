@@ -18,9 +18,15 @@ class GMSKDetector:
         self.counter = 0
 
     def calc_rhh(self, h):
-        rhh_full = np.convolve(h, np.conj(h[::-1]))
-        center_idx = h.size - 1
-        rhh = rhh_full[center_idx :: self.sps]
+        # Расчет инкрементов - ИХ на выходе СФ x(t). Используется для определения влияния соседних символов
+        # Если СФ выключен, то инкременты не используем
+        if self.mf_is_working == False:
+            center_idx = h.size // 2
+            rhh = h[center_idx::self.sps]
+        else:
+            rhh_full = np.convolve(h, np.conj(h[::-1]))
+            center_idx = h.size - 1
+            rhh = rhh_full[center_idx :: self.sps]
 
         return rhh
 
@@ -73,7 +79,7 @@ class GMSKDetector:
     
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        is_to_table  = True
+        is_to_table  = False
 
         if is_to_table:
             if ((self.counter % 16) == 0):
@@ -329,14 +335,10 @@ class GMSKDetector:
                 burst_llr_output.append(llr) 
 
             elif self.type_demod in ["vit_soft", "vit_hard"]:
-                # Расчет инкрементов - ИХ на выходе СФ x(t). Используется для определения влияния соседних символов
-                # Если СФ выключен, то инкременты не используем
-                if self.mf_is_working == False:
-                    increment = np.zeros(16)
-                else:
-                    rhh = self.calc_rhh(h[b])
-                    increment_new = self.calc_new_increment(rhh)
-                    increment_old = self.calc_old_increment(rhh)
+                
+                rhh = self.calc_rhh(h[b])
+                increment_new = self.calc_new_increment(rhh)
+                increment_old = self.calc_old_increment(rhh)
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]

@@ -29,16 +29,62 @@ class NonePipeline(BasePipeline):
         # Передатчик
         coded_bits = self.encoder.process(bits.tolist())
         interleaved_bits = np.array(self.interleaver.process(coded_bits))
+        
+        # Для комбинации 0001000
+        interleaved_bits[4:8] = np.zeros(4)
+
         tx_signal = self.modulator.process(interleaved_bits)
+        tx_linear_signal = self.modulator.modulator.liner_mod(interleaved_bits)
+
+        is_compare_signal = True
+
+        if is_compare_signal:
+            label_size = 12
+            y_size = 16
+            x_size = 16
+            title_size = 20
+
+            left_limit = 0
+            right_limit = 1100
+            num_tap = right_limit - left_limit
+
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+
+            ax1.plot(np.arange(num_tap) / 4 + left_limit / 4,
+                      np.real(tx_signal[left_limit:right_limit]), label="True GMSK", lw=3)
+            ax1.plot(np.arange(num_tap) / 4 + left_limit / 4,
+                      np.real(tx_linear_signal[left_limit:right_limit]), label="Linearised GMSK", lw=3)
+            ax1.grid()
+            ax1.set_ylabel("Re", fontsize=y_size)
+            ax1.set_xlabel("t / T", fontsize=x_size)
+            ax1.legend(fontsize=label_size)
+
+            ax2.plot(np.arange(num_tap) / 4 + left_limit / 4,
+                      np.imag(tx_signal[left_limit:right_limit]), label="True GMSK", lw=3)
+            ax2.plot(np.arange(num_tap) / 4 + left_limit / 4,
+                      np.imag(tx_linear_signal[left_limit:right_limit]), label="Linearised GMSK", lw=3)
+            ax2.grid()
+            ax2.set_ylabel("Im", fontsize=y_size)
+            ax2.set_xlabel("t / T", fontsize=x_size)
+            ax2.legend(fontsize=label_size)
+
+            plt.suptitle("Signal envelope", fontsize=title_size)
+            plt.tight_layout()
+            plt.show()
+
+
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
-        # for i in range (8):
-        #     print('______________________')
-        #     print('number = ', i, 'bit = ', tx_bits[i])
+        is_print = False
+        
+        if is_print:
+            for i in range (8):
+                print('______________________')
+                print('number = ', i, 'bit = ', tx_bits[i])
 
-        # for i in range (144, 148):
-        #     print('______________________')
-        #     print('number = ', i, 'bit = ', tx_bits[i])
+            for i in range (144, 148):
+                print('______________________')
+                print('number = ', i, 'bit = ', tx_bits[i])
 
         # Канал
         rx_output = self.channel.process(tx_signal)
@@ -54,19 +100,6 @@ class NonePipeline(BasePipeline):
         # Графики для проверки llrов
         llr_0 = llr[tx_bits == 0]
         llr_1 = llr[tx_bits == 1]
-
-        # # Рисуем гистограммы
-        # plt.hist(llr_0, bins=30, density=True, color='blue', alpha=0.6, label='LLR для 0')
-        # plt.hist(llr_1, bins=30, density=True, color='red', alpha=0.6, label='LLR для 1')
-
-        # # Оформление "под куратора"
-        # plt.title(f"Распределение LLR на {int(rx_output.applied_signal_power_dbm)} дБм, {int(rx_output.ebn0_db)} дБ")
-        # plt.xlabel("Значение LLR")
-        # plt.ylabel("Плотность вероятности")
-        # plt.grid()
-        # plt.legend()
-        # # plt.xlim(-2.5, 2.5)
-        # plt.show()
 
         # Если есть мягкие решения, то в перемежитель подаем llr
         if self.detector.detector.type_demod == "vit_soft":
