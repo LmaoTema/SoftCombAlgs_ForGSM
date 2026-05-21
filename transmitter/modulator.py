@@ -152,71 +152,6 @@ class GMSKModulation:
 
         return phi_shift
 
-    def process_mod(self, bits):
-        
-        # Делим на 148, а не 156, что бы без кодера тоже работало
-        # Так как берем целую часть, то на результат не влияет 
-        active_size = 148
-        num_bursts = len(bits) // active_size
-    
-        q_gmsk = self.generate_q_gmsk()
-        
-        all_signals = []
-        guard_period = np.zeros(8 * self.sps, dtype=complex)
-        gp_len = 0
-        for i in range(num_bursts):
-            # Вырезаем из потока интересующий пакет (без защитного интервала)
-            burst = bits[gp_len + i*active_size : gp_len + (i+1)*active_size]
-            gp_len += 8
-
-            # Модуляция
-            alpha = self.differential_encoding(burst)
-            phi = self.calc_phase(alpha, q_gmsk)
-            signal_envelope = np.exp(1j * phi)
-
-            is_plot = False
-            
-            if is_plot:
-                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8))
-                y_size = 16
-                x_size = 14
-
-                ax1.step(np.arange(11), alpha[:11], where="post", lw=3)
-                ax1.set_ylabel("Symbols", fontsize=y_size)
-                ax1.set_xlabel("t / T", fontsize=x_size)
-                ax1.grid()
-                ax1.set_xlim(-0.5, 10.5)
-
-                ax2.plot(np.arange(10 * 4) / 4, phi[:40], lw=3)
-                # ax2.axhline(y=np.pi, color='r', linestyle='--', lw=1)
-                # ax2.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
-                ax2.set_ylabel("Phase", fontsize=y_size)
-                ax2.set_xlabel("t / T", fontsize=x_size) 
-                ax2.grid()
-                ax2.set_xlim(-0.5, 10.5)
-
-                ax3.plot(np.arange(40) / 4, np.real(signal_envelope[:40]), lw=3)
-                ax3.set_ylabel("Re[Signal]", fontsize=y_size)
-                ax3.set_xlabel("t / T", fontsize=x_size)
-                ax3.grid()
-                ax3.set_xlim(-0.5, 10.5)
-
-                ax4.plot(np.arange(40) / 4, np.imag(signal_envelope[:40]), lw=3)
-                ax4.set_ylabel("Im[Signal]", fontsize=y_size)
-                ax4.set_xlabel("t / T", fontsize=x_size)
-                ax4.grid()
-                ax4.set_xlim(-0.5, 10.5)
-
-                plt.suptitle("Modulation", fontsize=20) 
-                plt.tight_layout()
-                plt.show()
-            
-            # Добавляем сигнал и защитный интервал
-            all_signals.append(signal_envelope)
-            all_signals.append(guard_period)
-
-        return np.concatenate(all_signals)
-    
     def h_mod(self):
         BT = self.BT
         T = self.T
@@ -290,7 +225,77 @@ class GMSKModulation:
         linear_final = linear_signal[6 : num_bits * sps + 6]
 
         return linear_final
+    
+    def process_mod(self, bits):
+        
+        # Делим на 148, а не 156, что бы без кодера тоже работало
+        # Так как берем целую часть, то на результат не влияет 
+        active_size = 148
+        num_bursts = len(bits) // active_size
+    
+        q_gmsk = self.generate_q_gmsk()
+        
+        all_signals = []
+        all_linear_signals = []
+        guard_period = np.zeros(8 * self.sps, dtype=complex)
+        gp_len = 0
+        for i in range(num_bursts):
+            # Вырезаем из потока интересующий пакет (без защитного интервала)
+            burst = bits[gp_len + i*active_size : gp_len + (i+1)*active_size]
+            gp_len += 8
 
+            # Модуляция
+            alpha = self.differential_encoding(burst)
+            phi = self.calc_phase(alpha, q_gmsk)
+            signal_envelope = np.exp(1j * phi)
+
+            signal_linear_envelope = self.liner_mod(burst)
+
+            is_plot = False
+            
+            if is_plot:
+                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8))
+                y_size = 16
+                x_size = 14
+
+                ax1.step(np.arange(11), alpha[:11], where="post", lw=3)
+                ax1.set_ylabel("Symbols", fontsize=y_size)
+                ax1.set_xlabel("t / T", fontsize=x_size)
+                ax1.grid()
+                ax1.set_xlim(-0.5, 10.5)
+
+                ax2.plot(np.arange(10 * 4) / 4, phi[:40], lw=3)
+                # ax2.axhline(y=np.pi, color='r', linestyle='--', lw=1)
+                # ax2.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
+                ax2.set_ylabel("Phase", fontsize=y_size)
+                ax2.set_xlabel("t / T", fontsize=x_size) 
+                ax2.grid()
+                ax2.set_xlim(-0.5, 10.5)
+
+                ax3.plot(np.arange(40) / 4, np.real(signal_envelope[:40]), lw=3)
+                ax3.set_ylabel("Re[Signal]", fontsize=y_size)
+                ax3.set_xlabel("t / T", fontsize=x_size)
+                ax3.grid()
+                ax3.set_xlim(-0.5, 10.5)
+
+                ax4.plot(np.arange(40) / 4, np.imag(signal_envelope[:40]), lw=3)
+                ax4.set_ylabel("Im[Signal]", fontsize=y_size)
+                ax4.set_xlabel("t / T", fontsize=x_size)
+                ax4.grid()
+                ax4.set_xlim(-0.5, 10.5)
+
+                plt.suptitle("Modulation", fontsize=20) 
+                plt.tight_layout()
+                plt.show()
+            
+            # Добавляем сигнал и защитный интервал
+            all_signals.append(signal_envelope)
+            all_signals.append(guard_period)
+
+            all_linear_signals.append(signal_linear_envelope)
+            all_linear_signals.append(guard_period)
+
+        return np.concatenate(all_signals), np.concatenate(all_linear_signals)
 
 
 class PSKModulation:

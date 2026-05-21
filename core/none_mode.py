@@ -32,9 +32,7 @@ class NonePipeline(BasePipeline):
         
         # Для комбинации 0001000
         interleaved_bits[4:8] = np.zeros(4)
-
-        tx_signal = self.modulator.process(interleaved_bits)
-        tx_linear_signal = self.modulator.modulator.liner_mod(interleaved_bits)
+        tx_signal, tx_linear_signal = self.modulator.process(interleaved_bits)
 
         is_compare_signal = True
 
