@@ -234,7 +234,7 @@ class GMSKDetector:
         d_curr = ((1 - alpha) / 2).astype(int)
 
         burst_bits = np.zeros(d_curr.size, dtype=int)
-        d_prev = 1
+        d_prev = 0
         for i in range(d_curr.size):
             burst_bits[i] = d_curr[i] ^ d_prev
             d_prev = burst_bits[i]
