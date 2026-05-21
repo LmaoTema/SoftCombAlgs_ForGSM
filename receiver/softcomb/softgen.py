@@ -42,7 +42,7 @@ class SoftGenerator:
         
         data = data[:10]
             
-        ref_rssi = -119.0
+        ref_rssi = -108.0
         self.rssi_db = np.array([d["rssi"] for d in data]) + ref_rssi
         
         self.mean = np.array([d["raw_llr_mean_abs"][0] for d in data])
@@ -51,10 +51,10 @@ class SoftGenerator:
         self.maxv = np.array([d["raw_llr_max"][0]  for d in data])
         self.uncoded_ber = np.array([d["uncoded_ber"] for d in data])
 
-    def get_uncoded_ber(self, snr_db_list):
-        return self.uncoded_ber[snr_db_list]
+    def get_uncoded_ber(self, rssi_list):
+        return self.uncoded_ber[rssi_list]
 
-    def get_soft_decisions(self, bits, snr_db_list, num_sectors=2):
+    def get_soft_decisions(self, bits, rssi_list, num_sectors=2):
 
         bits = np.asarray(bits, dtype=np.int8)
         if bits.ndim != 1:
@@ -62,21 +62,21 @@ class SoftGenerator:
 
         soft_list = []  
 
-        for snr_db in np.asarray(snr_db_list).flatten():
+        for rssi in np.asarray(rssi_list).flatten():
             sector_results = []
             
             for _ in range(num_sectors):
-                result = self._generate_one_sector(bits, snr_db)
+                result = self._generate_one_sector(bits, rssi)
                 sector_results.append(result)
             
             soft_list.append(sector_results)
             
         return soft_list
 
-    def _generate_one_sector(self, bits, snr_db):
+    def _generate_one_sector(self, bits, rssi):
         
         N = len(bits)
-        idx = snr_db
+        idx = rssi
         
         mu = self.mean[idx]
         sigma = self.std[idx]

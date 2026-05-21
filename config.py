@@ -3,11 +3,11 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "CS1",
-    "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_model": "rayleigh_multipath",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "full",      # "none"/ "half"/ "full"    
-    "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "SC"
+    "processing_mode": "half",      # "none"/ "half"/ "full"    
+    "combining_method": "ACS",    # "PDMRC" / "SC" / "ACS"
+    "file_name": "NO_Multi_generatic"
 }
 
 block_params = {
@@ -26,13 +26,13 @@ BER = {
     "h2dB_max_step": 1.6,
     "h2dB_max": 20.0,
     
-    "prx_dbm_init": -118.0,
-    "prx_dbm_init_step": 2.0,
+    "prx_dbm_init": -108.0,
+    "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
-    "prx_dbm_max_step": 2.0,
+    "prx_dbm_max_step": 1.0,
     "prx_dbm_max": -102.0,
 
-    "min_BER": 1e-3,
+    "min_BER": 1e-4,
     "min_FER": 1,
     
     "min_NumErBits": 500,
