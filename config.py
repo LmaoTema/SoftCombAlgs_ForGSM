@@ -3,11 +3,12 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type": "CS1",
-    "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_model": "rayleigh_multipath",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode": "full",      # "none"/ "half"/ "full"    
     "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "SC"
+    "file_name": "SC",
+    "estimator_method": "training",     # "analytical"/"training"
 }
 
 block_params = {
@@ -15,7 +16,7 @@ block_params = {
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
     "channel":        {"is_working": True},
-    "matched_filter": {"is_working": False},
+    "matched_filter": {"is_working": True},
     "equalizer":      {"is_working": False},
 }
 

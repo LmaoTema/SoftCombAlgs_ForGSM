@@ -26,8 +26,12 @@ class MatchedFilter(Block):
 
             # Свертка сигнала с ИХ СФ 
             burst_match = np.convolve(rx_burst, np.conj(h_est[::-1]))
-            # Убираем задержку от СФ. Пик на конце символьного интервала 
-            burst_trunc = burst_match[int(h_est.size / 2) - 1: - int(h_est.size / 2)]
+            # Поиск главного пика
+            peak_idx = int(np.argmax(np.abs(h_est)))
+            # Считаем сдвиг после свертки
+            delay = len(h_est) - 1 - peak_idx
+            # Убираем задержку от СФ.
+            burst_trunc = burst_match[delay: delay + len(rx_burst)]
             # Склеиваем все пакеты
             match_signal.append(burst_trunc)
 
