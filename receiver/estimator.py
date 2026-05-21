@@ -4,7 +4,7 @@ from transmitter.modulator import GMSKModulation
 class ChannelEstimate():
     
     # Если True, на первом бёрсте всего прогона строится диагностика оценки канала:
-    PLOT_CHANNEL_ESTIMATE = True
+    PLOT_CHANNEL_ESTIMATE = False
 
     def __init__(self, modulation_params, simulation_params):
         self.BT = modulation_params.get("BT", 0.3)
