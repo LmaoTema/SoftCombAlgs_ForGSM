@@ -49,7 +49,6 @@ class GMSKModulation:
         d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
 
-        bits[4:8] = np.zeros(4)
         alpha = 1 - 2 * bits
 
         return alpha
@@ -81,7 +80,7 @@ class GMSKModulation:
         # Интеграл формирующего импульса
         q_gmsk_oversampling = np.cumsum(g_t) * dt_oversampling
         q_gmsk = q_gmsk_oversampling[::oversampling]
-
+        
         return q_gmsk
 
     def calc_phase(self, alpha, q_gmsk):
@@ -93,11 +92,32 @@ class GMSKModulation:
         num_bits = alpha.size
         phi = np.zeros(num_bits * sps + q_gmsk.size - sps)
 
+        is_plot_phase = False
+
+        if is_plot_phase:
+            phi_plot = np.zeros(20)
+            shif_plot = 2
+            step = 0
+
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)       
+            ax1.step(np.arange(10 - shif_plot), alpha[:10 - shif_plot], where='post')
+            ax1.set_ylabel("Symbols")
+            ax1.set_xlabel("t / T") 
+            ax1.grid()
+            ax1.set_xlim(-0.5, 10.5 - shif_plot)
+            
+
         for i in range(num_bits):
             alpha_i = alpha[i]
             start_idx = i * sps
 
             phi[start_idx : start_idx + q_gmsk.size] += alpha_i * np.pi * h * q_gmsk
+            
+            if is_plot_phase:
+                if i < 6:
+                    phi_plot = alpha_i * np.pi * h * q_gmsk
+                    ax2.plot((np.arange(20) + step) / 4 - shif_plot, phi_plot, lw=3)
+                    step += 4
 
             # Прибавляем итоговое накопленное значение ко всему массиву
             phase_step = alpha_i * np.pi * h
@@ -110,6 +130,25 @@ class GMSKModulation:
         phi_shift = phi[int(shift * sps) + 1 : - int(shift * sps) + 1]
 
         phi_shift = phi[int(shift * sps) : - int(shift * sps)]
+
+        if is_plot_phase:
+
+            ax2.set_ylabel("Phase step")
+            ax2.set_xlabel("t / T") 
+            ax2.grid()
+            ax2.set_xlim(-0.5, 10.5 - shif_plot)
+
+            ax3.plot(np.arange((10 - shif_plot) * 4) / 4, phi[shif_plot * 4 : 40], lw=3)
+            ax3.axhline(y=np.pi, color='r', linestyle='--', lw=1)
+            ax3.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
+            ax3.set_ylabel("Phase") 
+            ax3.set_xlabel("t / T") 
+            ax3.grid()
+            ax3.set_xlim(-0.5, 10.5 - shif_plot)
+
+            plt.suptitle("Со сдвигом") 
+            plt.tight_layout()
+            plt.show()
 
         return phi_shift
 
@@ -135,27 +174,40 @@ class GMSKModulation:
             phi = self.calc_phase(alpha, q_gmsk)
             signal_envelope = np.exp(1j * phi)
 
-            is_plot = True
+            is_plot = False
             
             if is_plot:
-                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
+                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8))
+                y_size = 16
+                x_size = 14
 
-                ax1.step(np.arange(10), alpha[0:10], where="post", lw=3)
-                ax1.set_ylabel("Symbols")
+                ax1.step(np.arange(11), alpha[:11], where="post", lw=3)
+                ax1.set_ylabel("Symbols", fontsize=y_size)
+                ax1.set_xlabel("t / T", fontsize=x_size)
                 ax1.grid()
+                ax1.set_xlim(-0.5, 10.5)
 
-                ax2.plot(np.arange(40) / 4, phi[:40], lw=3)
-                ax2.set_ylabel("Phase")
+                ax2.plot(np.arange(10 * 4) / 4, phi[:40], lw=3)
+                # ax2.axhline(y=np.pi, color='r', linestyle='--', lw=1)
+                # ax2.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
+                ax2.set_ylabel("Phase", fontsize=y_size)
+                ax2.set_xlabel("t / T", fontsize=x_size) 
                 ax2.grid()
+                ax2.set_xlim(-0.5, 10.5)
 
                 ax3.plot(np.arange(40) / 4, np.real(signal_envelope[:40]), lw=3)
-                ax3.set_ylabel("Re [Signal envelope]")
+                ax3.set_ylabel("Re[Signal]", fontsize=y_size)
+                ax3.set_xlabel("t / T", fontsize=x_size)
                 ax3.grid()
+                ax3.set_xlim(-0.5, 10.5)
 
                 ax4.plot(np.arange(40) / 4, np.imag(signal_envelope[:40]), lw=3)
-                ax4.set_ylabel("Im [Signal envelope]")
+                ax4.set_ylabel("Im[Signal]", fontsize=y_size)
+                ax4.set_xlabel("t / T", fontsize=x_size)
                 ax4.grid()
+                ax4.set_xlim(-0.5, 10.5)
 
+                plt.suptitle("Modulation", fontsize=20) 
                 plt.tight_layout()
                 plt.show()
             
@@ -164,6 +216,81 @@ class GMSKModulation:
             all_signals.append(guard_period)
 
         return np.concatenate(all_signals)
+    
+    def h_mod(self):
+        BT = self.BT
+        T = self.T
+        gaus_duration = self.gaus_duration
+        rect_duration = self.rect_duration
+        L = gaus_duration + rect_duration
+
+        oversampling = 100
+        sps_oversampling = self.sps * oversampling
+        dt_oversampling = T/sps_oversampling
+
+        delta = np.sqrt(np.log(2)) / (2 * np.pi * BT)
+
+        t_h = np.arange(-gaus_duration / 2 * T, gaus_duration / 2 * T, dt_oversampling)
+        t_rect = np.arange(-rect_duration / 2 * T, rect_duration / 2 * T, dt_oversampling)
+
+        # Формируем гауссовский и прямоугольный импульсы
+        h_t = np.exp(-(t_h**2) / (2 * (delta**2) * (T**2))) / (
+            np.sqrt(2 * np.pi) * delta * T
+        )
+        rect = np.ones(t_rect.size) / T
+        
+        # Формирующий импульс
+        g_t = np.convolve(h_t, rect) * dt_oversampling
+
+        # Интеграл формирующего импульса
+        q_gmsk_oversampling = np.cumsum(g_t) * dt_oversampling
+
+        # Функция S(t), состояющая из 2х частей 
+        s_increas = np.sin(np.pi / 2 * q_gmsk_oversampling)
+        s_decreas = np.sin(np.pi / 2 - np.pi / 2 * q_gmsk_oversampling)
+        s = np.concatenate([s_increas, s_decreas, np.zeros(2)])
+
+        # Формируем основную компоненту разложения Лорана
+        # Учитываем, что L - длина ИХ, а не глубина МСИ
+        c_0 = np.ones((L + 1) * sps_oversampling)
+        for i in range((L + 1) * sps_oversampling):
+            for j in range(L):
+                c_0[i] *= s[i + j * sps_oversampling]
+
+        # В случае АБГШ c_0 - импульсная характеристика композитного канала
+        c_0_trunc = c_0[int(sps_oversampling / 2) : - int(sps_oversampling / 2)]
+        h = c_0_trunc[::oversampling]
+
+        return h
+    
+    def liner_mod(self, bits):
+
+        num_bits = len(bits)
+        sps = self.sps
+
+        # Символы и ИХ
+        alpha = 1 - 2 * bits
+        phase_accum = np.cumsum(alpha) * (np.pi / 2)
+        a_n = np.exp(1j * phase_accum)
+        h = self.h_mod()
+
+        # Инициализируем
+        sig_len = num_bits * sps + h.size
+        linear_signal  = np.zeros(sig_len, dtype=complex)
+        
+        # линейная модуляция
+        for i in range(num_bits):
+            start = i * sps
+            # end = start + T + 4T - мси
+            end = start + h.size
+            linear_signal[start:end] += a_n[i] * h
+
+        # Сдвиг для совмещения: отрезаем 7, чтобы пик был на индексе 3 (конец символьного интервала)
+        # (10 - 7 = 3)
+        linear_final = linear_signal[6 : num_bits * sps + 6]
+
+        return linear_final
+
 
 
 class PSKModulation:
