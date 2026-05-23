@@ -16,8 +16,28 @@ class GMSKDetector:
         self.mf_is_working = block_params["matched_filter"]["is_working"]
 
         self.counter = 0
+    
+    def calc_new_rhh(self, h):
+        
+        E_h = np.sum(np.abs(h**2))
+        h_mf = np.conj(h[::-1] / np.sqrt(E_h))
 
-    def calc_rhh(self, h):
+        if self.mf_is_working == False:
+            center_idx = h.size // 2
+            rhh = h[center_idx::self.sps]
+        else:
+            rhh_full = np.convolve(h, h_mf)
+            center_idx = h_mf.size - 1
+            rhh = rhh_full[center_idx :: self.sps]
+
+        return rhh
+
+    def calc_old_rhh(self, h):
+        # Раньше в СФ и в модуляторе была нормирвоаннная ИХ
+        E_h = np.sum(np.abs(h**2))
+        h_mf = h / np.sqrt(E_h)
+        h = h_mf
+
         # Расчет инкрементов - ИХ на выходе СФ x(t). Используется для определения влияния соседних символов
         # Если СФ выключен, то инкременты не используем
         if self.mf_is_working == False:
@@ -75,17 +95,41 @@ class GMSKDetector:
         increment[14] = - increment[1]
         increment[15] = - increment[0]
 
+        # increment = np.zeros(16)
+        # increment[0] = rhh[4] + rhh[3] + rhh[2] + rhh[1]
+        # increment[1] = rhh[4] + rhh[3] + rhh[2] - rhh[1]
+        # increment[2] = rhh[4] + rhh[3] - rhh[2] + rhh[1]
+        # increment[3] = rhh[4] + rhh[3] - rhh[2] - rhh[1]
+        # increment[4] = rhh[4] - rhh[3] + rhh[2] + rhh[1]
+        # increment[5] = rhh[4] - rhh[3] + rhh[2] - rhh[1]
+        # increment[6] = rhh[4] - rhh[3] - rhh[2] + rhh[1]
+        # increment[7] = rhh[4] - rhh[3] - rhh[2] - rhh[1]
+        # increment[8] = - increment[7]
+        # increment[9] = - increment[6]
+        # increment[10] = - increment[5]
+        # increment[11] = - increment[4]
+        # increment[12] = - increment[3]
+        # increment[13] = - increment[2]
+        # increment[14] = - increment[1]
+        # increment[15] = - increment[0]
+
+
         return increment
     
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        is_to_table  = False
+        is_to_table  = True
 
         if is_to_table:
             if ((self.counter % 16) == 0):
-                    name = 'res_wo_ch_new_incr.csv'
+                    if block_params['channel']['is_working']:
+                        ch = str(int(self.ebn0 - 116))
+                    else:
+                        ch = 'no'
+
+                    name = 'res_' + ch + '_ch_old_rhh.csv'
             else:
-                    name = 'res_wo_ch_old_incr.csv'
+                    name = 'res_' + ch + '_ch_new_rhh.csv'
 
         # Инициализируем начальное состояние решетки
         old_path_metrics = np.ones(16) * -1e30
@@ -144,7 +188,7 @@ class GMSKDetector:
                     # Это соответствует значениям счетчика (0, 1); (16, 17) и т.д
                     if ((self.counter % 16) == 0) or ((self.counter % 16) == 1):
                         for i in range (16):
-                            formatted_metric = f"{old_path_metrics[i]:.2f}"      
+                            formatted_metric = f"{old_path_metrics[i]:.3f}"      
                             data_to_save.append([symbol_num, i,  formatted_metric])
 
                     if symbol_num == 147:
@@ -315,6 +359,8 @@ class GMSKDetector:
         return burst_bits, llr
 
     def process_detect(self, complex_signal, h, ebn0):
+
+        self.ebn0 = ebn0
         
         sps = self.sps
         samples_per_burst = 156 * sps
@@ -336,18 +382,21 @@ class GMSKDetector:
 
             elif self.type_demod in ["vit_soft", "vit_hard"]:
                 
-                rhh = self.calc_rhh(h[b])
-                increment_new = self.calc_new_increment(rhh)
-                increment_old = self.calc_old_increment(rhh)
+                rhh_old = self.calc_old_rhh(h[b])
+                rhh_new = self.calc_new_rhh(h[b])
+
+                # Старый инкремент новый rhh
+                increment_new = self.calc_old_increment(rhh_new)
+                increment_old = self.calc_old_increment(rhh_old)
 
                 # Берем отсчеты на конце символьного интервала
                 sampled_burst = burst[self.sps - 1 :: self.sps]
 
                 # Строим решетку с инкрменетами
-                trans_table, old_path_metrics = self.calc_metric(increment_new, sampled_burst, start_state=0)
+                trans_table, old_path_metrics = self.calc_metric(increment_old, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
-                trans_table_2, old_path_metrics_2 = self.calc_metric(increment_old, sampled_burst, start_state=0)
+                trans_table_2, old_path_metrics_2 = self.calc_metric(increment_new, sampled_burst, start_state=0)
 
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)

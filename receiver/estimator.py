@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from transmitter.modulator import GMSKModulation
 class ChannelEstimate():
+    
+    # Если True, на первом бёрсте всего прогона строится диагностика оценки канала:
+    PLOT_CHANNEL_ESTIMATE = False
 
     def __init__(self, modulation_params, simulation_params):
         self.BT = modulation_params.get("BT", 0.3)
@@ -13,15 +16,18 @@ class ChannelEstimate():
         self.L = (self.gaus_duration + self.rect_duration)
 
         self.channel_model = simulation_params.get("channel_model", "awgn")
-        self.force_training_estimation_awgn = simulation_params.get(
-            "force_training_estimation_awgn", False
-        )
+        # Метод оценки канала:
+        #   "analytical" - h_awgn 
+        #   "training"   - по тренировочной последовательности 
+        self.estimator_method = simulation_params.get("estimator_method", "training")
+
         self.h = modulation_params.get("h", 0.5)
         self.est_channel_len_sps = modulation_params.get(
             "est_channel_len_sps", 5 * self.sps
         )
         self.estimator_reg = modulation_params.get("estimator_reg", 1e-2)
-        self.debug_first_burst = modulation_params.get("debug_first_burst", False)
+        # Флаг, чтобы график рисовался один раз за весь прогон, а не на каждой точке.
+        self._plot_done = False
     
     # h(t) композитного фильтра (передатчик + канал)
     def h_awgn(self):
@@ -67,10 +73,32 @@ class ChannelEstimate():
         # В случае АБГШ c_0 - импульсная характеристика композитного канала
         c_0_trunc = c_0[int(sps_oversampling / 2) : - int(sps_oversampling / 2)]
         h = c_0_trunc[::oversampling]
-        E_h = np.sum(np.abs(h)**2)
-        h_norm = h / np.sqrt(E_h)
 
-        return h_norm
+        is_plot_acf = False
+
+        if is_plot_acf:
+            E_h = np.sum(np.abs(h**2))
+            fig, (ax1) = plt.subplots(1,1)
+
+            non_norm_ir = np.convolve(h, np.conj(h[::-1]))
+
+            sqrt_E_ir = np.convolve(h, np.conj(h[::-1] / E_h))
+            center_idx = 19
+            ax1.plot(np.arange(20) / 4, sqrt_E_ir[center_idx::], lw=4, c='r', label="Прошлый x")
+            ax1.set_title("$x_m$", fontsize=20)
+            ax1.set_ylabel("x", fontsize=14)
+            ax1.set_xlabel("m", fontsize=14)
+            ax1.grid()
+
+            E_ir = np.convolve(h, np.conj(h[::-1] / np.sqrt(E_h)))
+            ax1.plot(np.arange(20) / 4, E_ir[center_idx::], lw=4, label="Новый x")
+
+            print(np.max(non_norm_ir), np.max(sqrt_E_ir), np.max(E_ir))
+            plt.legend(fontsize=10)
+            plt.tight_layout()
+            plt.show()
+
+        return h
 
     def build_reference_burst_waveform(self, burst_active_bits):
             mod = GMSKModulation({
@@ -85,11 +113,11 @@ class ChannelEstimate():
             tx_ref = mod.process_mod(np.asarray(burst_active_bits, dtype=int))
             return tx_ref
     
-    def h_rayleigh(self, rx_burst, tx_ref_burst, debug=False, title_prefix=""):
+    def h_rayleigh(self, rx_burst, tx_ref_burst):
         sps = self.sps
         train_bit_start = 61
         train_bit_end = 87   # не включая 87, всего 26 бит
-
+        h_awgn = self.h_awgn()
         # запас по памяти сигнала для учёта МСИ
         mem_bits = self.L
         # перевод границ из бит в отсчёты с расширением окна
@@ -131,45 +159,39 @@ class ChannelEstimate():
         b = X.conj().T @ y
         h = np.linalg.solve(A, b)
 
-        if debug:
+        h = np.convolve(h, h_awgn)
 
-            y_hat_full = np.convolve(tx_train_aligned, h, mode="full")
-            y_hat = y_hat_full[:len(rx_train_aligned)]
+        return h, rx_train_aligned, tx_train_aligned
 
-            fig, ax = plt.subplots(2, 1, figsize=(11, 8))
+    def _plot_estimate(self, h, rx_train_aligned, tx_train_aligned):
+        
+        y_hat_full = np.convolve(tx_train_aligned, h, mode="full")
+        y_hat = y_hat_full[:len(rx_train_aligned)]
 
-            ax[0].stem(np.arange(len(h)), np.abs(h))
-            ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
-            ax[0].set_xlabel('Tap index')
-            ax[0].set_ylabel('|h_est|')
-            ax[0].grid(True)
+        title_prefix = f"{self.channel_model} | {self.estimator_method}: "
 
-            ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
-            ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
-            ax[1].set_xlabel('Sample index')
-            ax[1].set_ylabel('Magnitude')
-            ax[1].legend()
-            ax[1].grid(True)
+        fig, ax = plt.subplots(2, 1, figsize=(11, 8))
 
-            plt.tight_layout()
-            plt.show()
+        ax[0].stem(np.arange(len(h)), np.abs(h))
+        ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
+        ax[0].set_xlabel('Tap index')
+        ax[0].set_ylabel('|h_est|')
+        ax[0].grid(True)
 
-            print("train_start =", train_start, "train_end =", train_end)
-            print("len(tx_train_aligned) =", len(tx_train_aligned))
-            print("len(rx_train_aligned) =", len(rx_train_aligned))
-            print("h_est =", h)
+        ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
+        ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
+        ax[1].set_xlabel('Sample index')
+        ax[1].set_ylabel('Magnitude')
+        ax[1].legend()
+        ax[1].grid(True)
 
-
-        return h
+        plt.tight_layout()
+        plt.show()
 
     def process(self, rx_signal, tx_signal, channel_state = None):
         samples_per_burst = 156 * self.sps
         num_bursts = len(rx_signal) // samples_per_burst
         h_list = []
-
-        use_closed_form_awgn = (
-            self.channel_model == "awgn" and not self.force_training_estimation_awgn
-        )
 
         for b in range(num_bursts):
             start_idx = b * samples_per_burst
@@ -178,25 +200,21 @@ class ChannelEstimate():
             rx_burst = rx_signal[start_idx:end_idx]
             tx_burst = tx_signal[start_idx:end_idx]
 
-            if use_closed_form_awgn:
-                h_est = self.h_awgn()
-            else:
-                debug_flag = self.debug_first_burst and (b == 0)
+            if self.estimator_method == "analytical":
 
-                if self.channel_model == "awgn":
-                    h_est = self.h_rayleigh(
-                        rx_burst,
-                        tx_burst,
-                        debug=debug_flag,
-                        title_prefix="AWGN: "
-                    )
-                else:
-                    h_est = self.h_rayleigh(
-                        rx_burst,
-                        tx_burst,
-                        debug=debug_flag,
-                        title_prefix="Rayleigh: "
-                    )
+                h_est = self.h_awgn()
+            elif self.estimator_method == "training":
+
+                h_est, rx_aligned, tx_aligned = self.h_rayleigh(rx_burst, tx_burst)
+
+                if self.PLOT_CHANNEL_ESTIMATE and not self._plot_done and b == 0:
+                    self._plot_estimate(h_est, rx_aligned, tx_aligned)
+                    self._plot_done = True
+            else:
+                raise ValueError(
+                    f"Unknown estimator_method: {self.estimator_method!r}. "
+                    f"Expected 'analytical' or 'training'."
+                )
 
             h_list.append(h_est)
 

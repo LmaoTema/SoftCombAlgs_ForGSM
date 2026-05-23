@@ -42,6 +42,7 @@ plt.figure(figsize=(10, 7))
 
 axis_metric_global = None
 
+count = 0
 
 for file in csv_files:
 
@@ -73,31 +74,42 @@ for file in csv_files:
                 continue
 
         ber_columns.append(col)
-        
+
+    i = 0
     for col in ber_columns:
 
         curve_name = col.replace("_BER", "")
 
         legend_label = f"{curve_name}_{file_label}"
+        color = ['r', 'g', 'b', 'c']
 
-        if "uncoded" in curve_name.lower():
+        # if "uncoded" in curve_name.lower():
+        if count == 0:
 
             plt.semilogy(
                 x_values,
                 df[col],
                 '--',
-                linewidth=2,
-                label=legend_label
+                marker='o',
+                linewidth=3,
+                label=legend_label,
+                c=color[i]
             )
 
         else:
-
+        
             plt.semilogy(
                 x_values,
                 df[col],
                 marker='o',
-                label=legend_label
+                linewidth=3,
+                label=legend_label,
+                c=color[i]
             )
+
+        i += 1
+
+    count += 1
 
 plt.grid(
     True,
@@ -108,7 +120,7 @@ plt.grid(
 
 if axis_metric_global == "dbm":
 
-    plt.xlabel("P_rx [dBm]")
+    plt.xlabel("P_rx [dBm]", fontsize=12)
 
 elif axis_metric_global == "ebn0_db":
 
@@ -119,8 +131,9 @@ else:
     plt.xlabel("SNR [dB]")
 
 
-plt.ylabel("BER")
-plt.title("BER TCH/FS AWGN")
-plt.legend(fontsize=8)
+plt.ylabel("BER", fontsize=12)
+plt.title("BER TCH/FS AWGN", fontsize=14)
+plt.legend(fontsize=12, handlelength=4)
+
 plt.tight_layout()
 plt.show()

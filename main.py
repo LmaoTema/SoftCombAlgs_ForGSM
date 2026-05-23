@@ -77,7 +77,7 @@ def main():
     if processing_mode == "half":
         rssi_points = (pipeline.soft_llr_generator.rssi_db)
         ber_ruler = HalfBERRuler(rssi_points=rssi_points, channel_type=channel_type, **BER)
-        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points,enable_log=False, channel_type=channel_type,**BER)
+        ber_ruler_uncoded = HalfBERRuler(rssi_points=rssi_points, enable_log=False, channel_type=channel_type,**BER)
     else:
         ber_ruler = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric)
         ber_ruler_uncoded = BERRuler(**BER, channel_type=channel_type, axis_metric=axis_metric, enable_log=False)

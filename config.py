@@ -2,12 +2,13 @@ import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
-    "channel_type": "TCHFS",
-    "channel_model": "awgn",        # "awgn" / "rayleigh_single" / "rayleigh_multipath"
-    "x_axis_metric": "dbm",         # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode": "none",      # "none"/ "half"/ "full"    
-    "combining_method": "SC",    # "PDMRC" / "SC" / "ACS"
-    "file_name": "old_increment"
+    "channel_type":     "TCHFS",
+    "channel_model":    "awgn",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "estimator_method": "analytical",             # "analytical" / "training"
+    "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
+    "processing_mode":  "none",                 # "none"/ "half" / "full"    
+    "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
+    "file_name":        "something",    
 }
 
 block_params = {
@@ -15,8 +16,8 @@ block_params = {
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
     "channel":        {"is_working": False},
-    "matched_filter": {"is_working": False},
-    "equalizer":      {"is_working": True},
+    "matched_filter": {"is_working": True},
+    "equalizer":      {"is_working": False},
 }
 
 BER = {
@@ -27,10 +28,10 @@ BER = {
     "h2dB_max": 100,
     
     "prx_dbm_init": -110.0,
-    "prx_dbm_init_step": 2.0,
+    "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
-    "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -108.0,
+    "prx_dbm_max_step": 1.0,
+    "prx_dbm_max": -102.0,
 
     "min_BER": 1e-4,
     "min_FER": 1,

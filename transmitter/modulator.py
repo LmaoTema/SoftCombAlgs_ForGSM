@@ -96,15 +96,15 @@ class GMSKModulation:
 
         if is_plot_phase:
             phi_plot = np.zeros(20)
-            shif_plot = 2
+            shift_plot = 2
             step = 0
 
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1)       
-            ax1.step(np.arange(10 - shif_plot), alpha[:10 - shif_plot], where='post')
+            ax1.step(np.arange(10 - shift_plot), alpha[:10 - shift_plot], where='post')
             ax1.set_ylabel("Symbols")
             ax1.set_xlabel("t / T") 
             ax1.grid()
-            ax1.set_xlim(-0.5, 10.5 - shif_plot)
+            ax1.set_xlim(-0.5, 10.5 - shift_plot)
             
 
         for i in range(num_bits):
@@ -116,7 +116,7 @@ class GMSKModulation:
             if is_plot_phase:
                 if i < 6:
                     phi_plot = alpha_i * np.pi * h * q_gmsk
-                    ax2.plot((np.arange(20) + step) / 4 - shif_plot, phi_plot, lw=3)
+                    ax2.plot((np.arange(20) + step) / 4 - shift_plot, phi_plot, lw=3)
                     step += 4
 
             # Прибавляем итоговое накопленное значение ко всему массиву
@@ -129,22 +129,22 @@ class GMSKModulation:
 
         phi_shift = phi[int(shift * sps) + 1 : - int(shift * sps) + 1]
 
-        phi_shift = phi[int(shift * sps) : - int(shift * sps)]
+        # phi_shift = phi[int(shift * sps) : - int(shift * sps)]
 
         if is_plot_phase:
 
             ax2.set_ylabel("Phase step")
             ax2.set_xlabel("t / T") 
             ax2.grid()
-            ax2.set_xlim(-0.5, 10.5 - shif_plot)
+            ax2.set_xlim(-0.5, 10.5 - shift_plot)
 
-            ax3.plot(np.arange((10 - shif_plot) * 4) / 4, phi[shif_plot * 4 : 40], lw=3)
+            ax3.plot(np.arange((10 - shift_plot) * 4) / 4, phi[shift_plot * 4 : 40], lw=3)
             ax3.axhline(y=np.pi, color='r', linestyle='--', lw=1)
             ax3.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
             ax3.set_ylabel("Phase") 
             ax3.set_xlabel("t / T") 
             ax3.grid()
-            ax3.set_xlim(-0.5, 10.5 - shif_plot)
+            ax3.set_xlim(-0.5, 10.5 - shift_plot)
 
             plt.suptitle("Со сдвигом") 
             plt.tight_layout()
@@ -212,6 +212,17 @@ class GMSKModulation:
         # Инициализируем
         sig_len = num_bits * sps + h.size
         linear_signal  = np.zeros(sig_len, dtype=complex)
+
+        is_plot_linear = False
+
+        if is_plot_linear:
+            lin_sig_plot = np.zeros(20)
+            shift_plot = 6
+            step = 0
+
+            y_size = 10
+            x_size = 10
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
         
         # линейная модуляция
         for i in range(num_bits):
@@ -219,6 +230,35 @@ class GMSKModulation:
             # end = start + T + 4T - мси
             end = start + h.size
             linear_signal[start:end] += a_n[i] * h
+            if i < 8:
+                if is_plot_linear:
+                    lin_sig_plot = a_n[i] * h
+
+                    ax2.plot((np.arange(20) + step - shift_plot) / 4, np.real(lin_sig_plot), lw=3)
+                    
+                    ax3.plot((np.arange(20) + step - shift_plot) / 4, np.imag(lin_sig_plot), lw=3)
+                    
+                    step += 4
+
+        if is_plot_linear:
+            ax1.step(np.arange(11), alpha[:11], where='post', lw=3)
+            ax1.set_ylabel("Symbols", fontsize=y_size)
+            ax1.set_xlabel("t / T", fontsize=x_size)
+            ax1.grid()
+            ax1.set_xlim(-0.5, 10.5)
+
+            ax2.set_ylabel("Re", fontsize=y_size)
+            ax2.set_xlabel("t / T", fontsize=x_size)
+            ax2.grid()
+            ax2.set_xlim(-0.5, 10.5)
+            
+            ax3.set_ylabel("Im", fontsize=y_size)
+            ax3.set_xlabel("t / T", fontsize=x_size)
+            ax3.grid()
+            ax3.set_xlim(-0.5, 10.5)
+            
+            plt.tight_layout()
+            plt.show()
 
         # Сдвиг для совмещения: отрезаем 7, чтобы пик был на индексе 3 (конец символьного интервала)
         # (10 - 7 = 3)

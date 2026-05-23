@@ -29,5 +29,5 @@ class ViterbiManager:
             from receiver.softcomb.comb_manager import CombManager
             combiner = CombManager(method=self.combining_method)
             combined_llr = combiner.combine(input_data)
-            
+            # combined_llr = input_data
             return self.single_viterbi.decode(combined_llr)

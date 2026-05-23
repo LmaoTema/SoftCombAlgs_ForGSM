@@ -155,4 +155,5 @@ class HalfBERRuler:
         return {
             "x": np.array(self.x_values),
             "results": self.results,
+            "axis_metric": "dBm"
         }
