@@ -23,7 +23,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_compare_new_and_old")
+results_path = Path("res_compare_hard")
 
 csv_files = list(results_path.glob("*.csv"))
 

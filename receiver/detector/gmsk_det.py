@@ -15,9 +15,7 @@ class GMSKDetector:
 
         self.mf_is_working = block_params["matched_filter"]["is_working"]
 
-        self.counter = 0
-    
-    def calc_new_rhh(self, h):
+    def calc_rhh(self, h):
         
         E_h = np.sum(np.abs(h**2))
         h_mf = np.conj(h[::-1] / np.sqrt(E_h))
@@ -115,6 +113,7 @@ class GMSKDetector:
 
 
         return increment
+
     
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
@@ -384,7 +383,7 @@ class GMSKDetector:
             elif self.type_demod in ["vit_soft", "vit_hard"]:
                 
                 rhh_old = self.calc_old_rhh(h[b])
-                rhh_new = self.calc_new_rhh(h[b])
+                rhh_new = self.calc_rhh(h[b])
 
                 # Старый инкремент новый rhh
                 increment_new = self.calc_old_increment(rhh_new)
