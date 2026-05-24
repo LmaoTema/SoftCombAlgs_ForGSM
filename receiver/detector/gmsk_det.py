@@ -46,6 +46,25 @@ class GMSKDetector:
         increment[14] = - increment[1]
         increment[15] = - increment[0]
 
+        # increment = np.zeros(16)
+        # increment[0] = rhh[4] + rhh[3] + rhh[2] + rhh[1]
+        # increment[1] = rhh[4] + rhh[3] + rhh[2] - rhh[1]
+        # increment[2] = rhh[4] + rhh[3] - rhh[2] + rhh[1]
+        # increment[3] = rhh[4] + rhh[3] - rhh[2] - rhh[1]
+        # increment[4] = rhh[4] - rhh[3] + rhh[2] + rhh[1]
+        # increment[5] = rhh[4] - rhh[3] + rhh[2] - rhh[1]
+        # increment[6] = rhh[4] - rhh[3] - rhh[2] + rhh[1]
+        # increment[7] = rhh[4] - rhh[3] - rhh[2] - rhh[1]
+        # increment[8] = - increment[7]
+        # increment[9] = - increment[6]
+        # increment[10] = - increment[5]
+        # increment[11] = - increment[4]
+        # increment[12] = - increment[3]
+        # increment[13] = - increment[2]
+        # increment[14] = - increment[1]
+        # increment[15] = - increment[0]
+
+
         return increment
 
     # Расчет метрик для всех возможных состояний
