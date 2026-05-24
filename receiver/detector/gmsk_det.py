@@ -412,6 +412,7 @@ class GMSKDetector:
         detector_bits= np.concatenate(burst_bits_output)
         detector_llr = np.concatenate(burst_llr_output)
         
-        detector_merge_distances = np.concatenate(all_merge_distances)
+        # detector_merge_distances = np.concatenate(all_merge_distances)
+        detector_merge_distances = 0
 
         return detector_bits, detector_llr, detector_merge_distances

@@ -134,6 +134,7 @@ else:
 plt.ylabel("BER", fontsize=12)
 plt.title("BER TCH/FS AWGN", fontsize=14)
 plt.legend(fontsize=12, handlelength=4)
+# plt.ylim(10e-3, 0)
 
 plt.tight_layout()
 plt.show()

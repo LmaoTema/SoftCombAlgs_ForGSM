@@ -1,6 +1,7 @@
 import numpy as np
 from core.block import Block
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 class Modulation(Block):
@@ -49,7 +50,7 @@ class GMSKModulation:
         d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
 
-        alpha = 1 - 2 * bits
+        # alpha = 1 - 2 * bits
 
         return alpha
 
@@ -129,7 +130,7 @@ class GMSKModulation:
 
         phi_shift = phi[int(shift * sps) + 1 : - int(shift * sps) + 1]
 
-        # phi_shift = phi[int(shift * sps) : - int(shift * sps)]
+        phi_shift = phi[int(shift * sps) : - int(shift * sps)]
 
         if is_plot_phase:
 
@@ -204,7 +205,7 @@ class GMSKModulation:
         sps = self.sps
 
         # Символы и ИХ
-        alpha = 1 - 2 * bits
+        alpha = self.differential_encoding(bits)
         phase_accum = np.cumsum(alpha) * (np.pi / 2)
         a_n = np.exp(1j * phase_accum)
         h = self.h_mod()
@@ -294,37 +295,68 @@ class GMSKModulation:
             is_plot = False
             
             if is_plot:
-                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8))
+                fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(12,6))
+                # fig, (ax1, ax2) = plt.subplots(2, 1)
                 y_size = 16
                 x_size = 14
 
-                ax1.step(np.arange(11), alpha[:11], where="post", lw=3)
-                ax1.set_ylabel("Symbols", fontsize=y_size)
+                ax1.step(np.arange(148), alpha[:148], where="post", lw=3)
+                ax1.set_ylabel("Символы", fontsize=y_size)
                 ax1.set_xlabel("t / T", fontsize=x_size)
                 ax1.grid()
-                ax1.set_xlim(-0.5, 10.5)
+                # ax1.set_xlim(-0.5, 10.5)
+                # ax1.xaxis.set_major_locator(ticker.MultipleLocator(1))
 
-                ax2.plot(np.arange(10 * 4) / 4, phi[:40], lw=3)
-                # ax2.axhline(y=np.pi, color='r', linestyle='--', lw=1)
-                # ax2.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
-                ax2.set_ylabel("Phase", fontsize=y_size)
-                ax2.set_xlabel("t / T", fontsize=x_size) 
-                ax2.grid()
-                ax2.set_xlim(-0.5, 10.5)
+                ax2.plot(np.arange(148*4) / 4, phi[:148*4], lw=3)
+                ax2.set_ylabel("Фаза", fontsize=y_size)
+                ax2.set_xlabel("t / T", fontsize=x_size)
+                ax2.grid(True)
+                # ax2.set_xlim(-0.5, 10.5) 
 
-                ax3.plot(np.arange(40) / 4, np.real(signal_envelope[:40]), lw=3)
-                ax3.set_ylabel("Re[Signal]", fontsize=y_size)
+                # --- НАСТРОЙКА ОСИ С PI ---
+                # 1. Устанавливаем шаг сетки каждые pi/2
+                ax2.yaxis.set_major_locator(ticker.MultipleLocator(2 * np.pi))
+                # ax2.xaxis.set_major_locator(ticker.MultipleLocator(1))
+
+                # 2. Функция для создания красивых подписей
+                def format_func(value, f):
+                    n = round(2 * value / np.pi)
+                    if n == 0:
+                        return "0"
+                    elif n == 1:
+                        return "$pi/2$"
+                    elif n == -1:
+                        return "$-pi/2$"
+                    elif n % 2 == 0:
+                        res = n // 2
+                        if res == 1: 
+                            return "$pi$"
+                        if res == -1:
+                            return "$-pi$"
+                        
+                        return f"${res}pi$"
+                    else:
+                        return f"${n}pi/2$"
+
+                ax2.yaxis.set_major_formatter(ticker.FuncFormatter(format_func))
+                # Увеличиваем размер шрифта цифр (меток) на осях
+                # ax2.tick_params(axis='both', which='major', labelsize=12)
+
+
+                ax3.plot(np.arange(148*4) / 4, np.real(signal_envelope[:148*4]), lw=3)
+                ax3.set_ylabel("Вещественная часть", fontsize=y_size)
                 ax3.set_xlabel("t / T", fontsize=x_size)
                 ax3.grid()
-                ax3.set_xlim(-0.5, 10.5)
+                # ax3.set_xlim(-0.5, 10.5)
+                # ax3.xaxis.set_major_locator(ticker.MultipleLocator(1))
 
-                ax4.plot(np.arange(40) / 4, np.imag(signal_envelope[:40]), lw=3)
-                ax4.set_ylabel("Im[Signal]", fontsize=y_size)
+                ax4.plot(np.arange(148*4) / 4, np.imag(signal_envelope[:148*4]), lw=3)
+                ax4.set_ylabel("Мнимая часть", fontsize=y_size)
                 ax4.set_xlabel("t / T", fontsize=x_size)
                 ax4.grid()
-                ax4.set_xlim(-0.5, 10.5)
+                # ax4.set_xlim(-0.5, 10.5)
+                # ax4.xaxis.set_major_locator(ticker.MultipleLocator(1))
 
-                plt.suptitle("Modulation", fontsize=20) 
                 plt.tight_layout()
                 plt.show()
             

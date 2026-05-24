@@ -31,55 +31,41 @@ class NonePipeline(BasePipeline):
         interleaved_bits = np.array(self.interleaver.process(coded_bits))
         
         # Для комбинации 0001000
-        interleaved_bits[4:8] = np.zeros(4)
+        # interleaved_bits[4:8] = np.zeros(4)
         tx_signal, tx_linear_signal = self.modulator.process(interleaved_bits)
 
         is_compare_signal = False
 
         if is_compare_signal:
 
-            fig, (ax3, ax1, ax2) = plt.subplots(3, 1)
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
 
-            label_size = 8
-            y_size = 10
-            x_size = 10
+            label_size = 12 
+            y_size = 16
+            x_size = 14
             title_size = 20
 
-            left_limit = 0
-            right_limit = 40
-            num_tap = right_limit - left_limit
+            num_tap = len(tx_signal)
 
-            alpha = 1 - 2 * interleaved_bits
-
-            ax3.step(np.arange(11), alpha[:11 ], where='post', lw=3)
-            ax3.set_ylabel("Symbols", fontsize=y_size)
-            ax3.set_xlabel("t / T", fontsize=x_size)
-            ax3.grid()
-            ax3.set_xlim(-0.5, 10.5)
-
-            ax1.plot(np.arange(num_tap) / 4 + left_limit / 4,
-                      np.abs(tx_signal[left_limit:right_limit]), label="True", lw=3)
-            ax1.plot(np.arange(num_tap) / 4 + left_limit / 4,
-                      np.abs(tx_linear_signal[left_limit:right_limit]), label="Linear", lw=3)
+            ax1.plot(np.arange(num_tap) / 4,
+                      np.real(tx_signal[:num_tap]), label="GMSK", lw=3)
+            ax1.plot(np.arange(num_tap) / 4,
+                      np.real(tx_linear_signal[:num_tap]), label="Линеаризованная GMSK", lw=3)
             ax1.grid()
-            ax1.set_ylabel("|s(t)|", fontsize=y_size)
+            ax1.set_ylabel("Вещественная часть", fontsize=y_size)
             ax1.set_xlabel("t / T", fontsize=x_size)
-            ax1.legend(fontsize=label_size)
-            ax1.set_xlim(-0.5, 10.5)
+            ax1.legend(fontsize=label_size, loc = "upper right")
+            ax1.set_xlim(-0.5, 148.5)
 
-            left_limit = 0
-            right_limit = len(tx_signal)
-            num_tap = right_limit - left_limit
-
-            ax2.plot(np.arange(num_tap) / 4 + left_limit / 4,
-                      np.abs(tx_signal[left_limit:right_limit]), label="True", lw=3)
-            ax2.plot(np.arange(num_tap) / 4 + left_limit / 4,
-                      np.abs(tx_linear_signal[left_limit:right_limit]), label="Linear", lw=3)
+            ax2.plot(np.arange(num_tap) / 4,
+                      np.imag(tx_signal[:num_tap]), label="GMSK", lw=3)
+            ax2.plot(np.arange(num_tap) / 4,
+                      np.imag(tx_linear_signal[:num_tap]), label="Линеаризованная GMSK", lw=3)
             ax2.grid()
-            ax2.set_ylabel("|s(t)| for 1 frame", fontsize=y_size)
+            ax2.set_ylabel("Мнимая часть", fontsize=y_size)
             ax2.set_xlabel("t / T", fontsize=x_size)
-            ax2.legend(fontsize=label_size)
-            # ax2.set_xlim(-0.5, 10.5)
+            ax2.legend(fontsize=label_size, loc = "upper right")
+            ax2.set_xlim(-0.5, 148.5)
 
             plt.tight_layout()
             plt.show()

@@ -81,17 +81,17 @@ class ChannelEstimate():
             fig, (ax1) = plt.subplots(1,1)
 
             non_norm_ir = np.convolve(h, np.conj(h[::-1]))
-
             sqrt_E_ir = np.convolve(h, np.conj(h[::-1] / E_h))
+            E_ir = np.convolve(h, np.conj(h[::-1] / np.sqrt(E_h)))
             center_idx = 19
-            ax1.plot(np.arange(20) / 4, sqrt_E_ir[center_idx::], lw=4, c='r', label="Прошлый x")
-            ax1.set_title("$x_m$", fontsize=20)
-            ax1.set_ylabel("x", fontsize=14)
-            ax1.set_xlabel("m", fontsize=14)
+               
+            ax1.plot(np.arange(len(c_0_trunc)) / 400, c_0_trunc, lw=4, c='r')
+            ax1.set_title("$c_0(t)$", fontsize=20)
+            ax1.set_ylabel("Амплитуда", fontsize=16)
+            ax1.set_xlabel("t / T", fontsize=14)
             ax1.grid()
 
-            E_ir = np.convolve(h, np.conj(h[::-1] / np.sqrt(E_h)))
-            ax1.plot(np.arange(20) / 4, E_ir[center_idx::], lw=4, label="Новый x")
+            
 
             print(np.max(non_norm_ir), np.max(sqrt_E_ir), np.max(E_ir))
             plt.legend(fontsize=10)

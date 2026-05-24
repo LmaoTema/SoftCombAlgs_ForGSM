@@ -8,32 +8,26 @@ simulation_params = {
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode":  "none",                 # "none"/ "half" / "full"    
     "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
-    "file_name":        "something",    
+    "file_name":        "soft",    
 }
 
 block_params = {
     "encoding":       {"is_working": True},
     "interleaver":    {"is_working": True},
     "modulation":     {"is_working": True},
-    "channel":        {"is_working": False},
+    "channel":        {"is_working": True},
     "matched_filter": {"is_working": True},
     "equalizer":      {"is_working": False},
 }
 
 BER = {
-    "h2dB_init": 100,
-    "h2dB_init_step": 0.4,
-    "h2dB_min_step": 0.1,
-    "h2dB_max_step": 1.6,
-    "h2dB_max": 100,
-    
-    "prx_dbm_init": -110.0,
+    "prx_dbm_init": -118.0,
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 1.0,
-    "prx_dbm_max": -102.0,
+    "prx_dbm_max": -110.0,
 
-    "min_BER": 1e-4,
+    "min_BER": 1e-3,
     "min_FER": 1,
     
     "min_NumErBits": 500,
@@ -76,7 +70,7 @@ modulation_params = {
     "h": 0.5,
     "gaus_duration": 4,
     "rect_duration": 1,
-    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
+    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
