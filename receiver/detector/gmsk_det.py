@@ -118,14 +118,15 @@ class GMSKDetector:
     
     # Расчет метрик для всех возможных состояний
     def calc_metric(self, increment, sampled_signal, start_state):
-        is_to_table  = True
+        is_to_table  = False
 
         if is_to_table:
+            if block_params['channel']['is_working']:
+                ch = str(int(self.ebn0 - 116))
+            else:
+                ch = 'no'
+
             if ((self.counter % 16) == 0):
-                    if block_params['channel']['is_working']:
-                        ch = str(int(self.ebn0 - 116))
-                    else:
-                        ch = 'no'
 
                     name = 'res_' + ch + '_ch_old_rhh.csv'
             else:
@@ -396,7 +397,7 @@ class GMSKDetector:
                 trans_table, old_path_metrics = self.calc_metric(increment_old, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
-                trans_table_2, old_path_metrics_2 = self.calc_metric(increment_new, sampled_burst, start_state=0)
+                # trans_table_2, old_path_metrics_2 = self.calc_metric(increment_new, sampled_burst, start_state=0)
 
                 # Находим наиболее вероятное последнее состояние 
                 best_stop_state = self.find_best_stop_state(old_path_metrics)
