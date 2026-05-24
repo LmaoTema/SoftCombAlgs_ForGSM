@@ -36,14 +36,14 @@ class DopplerFader:
             return "reference"
         return "legacy_non_reference"
 
-    # Нормировка средней мощности процесса
-    @staticmethod
-    def _normalize_average_power(h, target_power = 1.0):
-        measured_power = float(np.mean(np.abs(h) ** 2)) if len(h) else 0.0
-        if measured_power <= 0:
-            return h.astype(np.complex128), measured_power, False
-        gain = np.sqrt(float(target_power) / measured_power)
-        return (h * gain).astype(np.complex128), measured_power, not np.isclose(gain, 1.0)
+    # # Нормировка средней мощности процесса
+    # @staticmethod
+    # def _normalize_average_power(h, target_power = 1.0):
+    #     measured_power = float(np.mean(np.abs(h) ** 2)) if len(h) else 0.0
+    #     if measured_power <= 0:
+    #         return h.astype(np.complex128), measured_power, False
+    #     gain = np.sqrt(float(target_power) / measured_power)
+    #     return (h * gain).astype(np.complex128), measured_power, not np.isclose(gain, 1.0)
 
     def _init_process(self):
         if self.spectrum == "IID":
@@ -152,26 +152,26 @@ class DopplerFader:
 
         n = np.arange(self._sample_index, self._sample_index + N, dtype = float)    # временные номера отсчетов
 
-        if self.spectrum == "CLARKE":
-            phases = 2.0 * np.pi * np.outer(self._freqs / self.fs, n)           # вычисляются фазы синусоид
-            h = np.sum(self._coeffs[:, None] * np.exp(1j * phases), axis = 0)   # cкладывает все синусоиды в один процесс
-            h = h - np.mean(h)
-            self._sample_index += N
-            h_norm, raw_power, normalization_applied = self._normalize_average_power(h) # нормировкаа процесса к средней мощности 1
-            return h_norm, {
-                "fading_mode": self.spectrum,
-                "fading_mode_class": self._mode_class(self.spectrum),
-                "target_average_channel_power": 1.0,
-                "measured_average_channel_power": float(np.mean(np.abs(h_norm) ** 2)),
-                "raw_average_channel_power": raw_power,
-                "normalization_applied": normalization_applied,
-                "seed": self.seed,
-                "fd_hz": self.fd,
-                "sample_rate_hz": self.fs,
-            }
+        # if self.spectrum == "CLARKE":
+        phases = 2.0 * np.pi * np.outer(self._freqs / self.fs, n)           # вычисляются фазы синусоид
+        h = np.sum(self._coeffs[:, None] * np.exp(1j * phases), axis = 0)   # cкладывает все синусоиды в один процесс
+        #     h = h - np.mean(h)
+        #     self._sample_index += N
+        #     h_norm, raw_power, normalization_applied = self._normalize_average_power(h) # нормировкаа процесса к средней мощности 1
+        #     return h_norm, {
+        #         "fading_mode": self.spectrum,
+        #         "fading_mode_class": self._mode_class(self.spectrum),
+        #         "target_average_channel_power": 1.0,
+        #         "measured_average_channel_power": float(np.mean(np.abs(h_norm) ** 2)),
+        #         "raw_average_channel_power": raw_power,
+        #         "normalization_applied": normalization_applied,
+        #         "seed": self.seed,
+        #         "fd_hz": self.fd,
+        #         "sample_rate_hz": self.fs,
+        #     }
 
-        phases = 2.0 * np.pi * np.outer(self._freqs / self.fs, n)
-        h = np.sum(self._coeffs[:, None] * np.exp(1j * phases), axis = 0)
+        # phases = 2.0 * np.pi * np.outer(self._freqs / self.fs, n)
+        # h = np.sum(self._coeffs[:, None] * np.exp(1j * phases), axis = 0)
 
         if self.spectrum == "RICE":
             k_factor = 1.0          # отношение мощности прямого луча к рассеянной части
@@ -180,14 +180,14 @@ class DopplerFader:
             h = np.sqrt(1.0 / (k_factor + 1.0)) * h + np.sqrt(k_factor / (k_factor + 1.0)) * los
 
         self._sample_index += N
-        h_norm, raw_power, normalization_applied = self._normalize_average_power(h)
-        return h_norm, {
+        measured_power = float(np.mean(np.abs(h) ** 2))
+        return h.astype(np.complex128), {
             "fading_mode": self.spectrum,
             "fading_mode_class": self._mode_class(self.spectrum),
             "target_average_channel_power": 1.0,
-            "measured_average_channel_power": float(np.mean(np.abs(h_norm) ** 2)),
-            "raw_average_channel_power": raw_power,
-            "normalization_applied": normalization_applied,
+            "measured_average_channel_power": measured_power,
+            "raw_average_channel_power": measured_power,
+            "normalization_applied": False,
             "seed": self.seed,
             "fd_hz": self.fd,
             "sample_rate_hz": self.fs,

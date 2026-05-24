@@ -6,6 +6,11 @@ class ChannelEstimate():
     # Если True, на первом бёрсте всего прогона строится диагностика оценки канала:
     PLOT_CHANNEL_ESTIMATE = False
 
+    DEFAULTS = {
+        "est_channel_len_sps": 8,      # длина оцениваемой ИХ в отсчётах (None -> 5*sps)
+        "estimator_reg":       1e-4,   # регуляризация Тихонова в LS-оценке (X^H X + reg*I)
+    }
+
     def __init__(self, modulation_params, simulation_params):
         self.BT = modulation_params.get("BT", 0.3)
         self.T = modulation_params.get("T", 3.69e-6)
@@ -22,10 +27,16 @@ class ChannelEstimate():
         self.estimator_method = simulation_params.get("estimator_method", "training")
 
         self.h = modulation_params.get("h", 0.5)
-        self.est_channel_len_sps = modulation_params.get(
-            "est_channel_len_sps", 5 * self.sps
-        )
-        self.estimator_reg = modulation_params.get("estimator_reg", 1e-2)
+
+        def _p(key):
+            return modulation_params.get(key, self.DEFAULTS[key])
+
+        _len = _p("est_channel_len_sps")
+        self.est_channel_len_sps = int(_len) if _len is not None else 5 * self.sps
+
+        self.est_n_taps_keep = int(_p("est_n_taps_keep"))
+        self.estimator_reg = float(_p("estimator_reg"))
+
         # Флаг, чтобы график рисовался один раз за весь прогон, а не на каждой точке.
         self._plot_done = False
     

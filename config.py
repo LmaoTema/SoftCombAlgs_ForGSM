@@ -6,7 +6,7 @@ simulation_params = {
     "channel_model":    "rayleigh_multipath",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "estimator_method": "training",             # "analytical" / "training"
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode":  "full",                 # "none"/ "half" / "full"    
+    "processing_mode":  "none",                 # "none"/ "half" / "full"    
     "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
     "file_name":        "something",    
 }
@@ -17,7 +17,7 @@ block_params = {
     "modulation":     {"is_working": True},
     "channel":        {"is_working": True},
     "matched_filter": {"is_working": True},
-    "equalizer":      {"is_working": False},
+    "equalizer":      {"is_working": True},
 }
 
 BER = {

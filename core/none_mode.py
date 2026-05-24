@@ -39,8 +39,32 @@ class NonePipeline(BasePipeline):
         rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
         h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
         mf = self.matched_filter.process(rx_signal, h)
-        eq = self.equalizer.process(mf, h)
-        detected_bits, llr = self.detector.process(eq, h, ebn0_val)
+
+        eq_out = self.equalizer.process(mf, h)
+
+        # Эквалайзер (когда включён) возвращает пару (signal, llr).
+        # Когда выключен, Block.process возвращает исходный сигнал mf без llr.
+        if isinstance(eq_out, tuple):
+            eq_signal, eq_llr = eq_out
+        else:
+            eq_signal, eq_llr = eq_out, None
+
+        eq_provides_soft = (
+            getattr(self.equalizer, "is_working", False)
+            and getattr(self.equalizer, "provides_soft", False)
+            and eq_llr is not None
+        )
+
+        if eq_provides_soft:
+
+            dfe_bits = getattr(self.equalizer.equalizer, "last_hard_bits", None)
+            if dfe_bits is not None and len(dfe_bits) > 0:
+                detected_bits = dfe_bits
+            else:
+                detected_bits, _ = self.detector.process(eq_signal, h, ebn0_val)
+            llr = eq_llr
+        else:
+            detected_bits, llr = self.detector.process(eq_signal, h, ebn0_val)
 
         # Если есть мягкие решения, то в перемежитель подаем llr
         if self.detector.detector.type_demod == "vit_soft":

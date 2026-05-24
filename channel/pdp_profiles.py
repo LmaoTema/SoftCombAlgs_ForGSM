@@ -20,7 +20,7 @@ TU = _profile(
     "Typical Urban",
     delays_us=[0.0, 0.2, 0.5, 1.6, 2.3, 5.0],
     powers_db=[-3.0, 0.0, -2.0, -6.0, -8.0, -10.0],
-    doppler_types=["CLASS", "CLASS", "CLASS", "GAUS1", "GAUS1", "GAUS2"],
+    doppler_types=["CLARKE", "CLARKE", "CLARKE", "CLARKE", "CLARKE", "CLARKE"],
 )
 
 # Rural Area
@@ -28,7 +28,7 @@ RA = _profile(
     "Rural Area",
     delays_us=[0.0, 0.2, 0.4, 0.6],
     powers_db=[0.0, -2.0, -10.0, -20.0],
-    doppler_types=["RICE", "CLASS", "CLASS", "CLASS"],
+    doppler_types=["CLARKE", "CLARKE", "CLARKE", "CLARKE"],
 )
 
 
@@ -37,7 +37,7 @@ HT = _profile(
     "Hilly Terrain",
     delays_us=[0.0, 0.2, 0.4, 0.6, 15.0, 17.2],
     powers_db=[0.0, -2.0, -4.0, -7.0, -6.0, -12.0],
-    doppler_types=["CLASS", "CLASS", "CLASS", "CLASS", "GAUS2", "GAUS2"],
+    doppler_types=["CLARKE", "CLARKE", "CLARKE", "CLARKE", "CLARKE", "CLARKE"],
 )
 
 CHANNEL_PROFILES = {

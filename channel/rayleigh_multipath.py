@@ -53,7 +53,7 @@ class RayleighMultipathChannel:
         self.requested_delays_samples = delays_samples
         self.int_delays = np.floor(delays_samples).astype(int)
         self.frac_delays = delays_samples - self.int_delays
-        self.max_delay = int(np.max(self.int_delays)) + (self.L - 1)
+        self.max_delay = int(np.max(self.int_delays))
 
         base_seed = None if seed is None else int(seed)
         self.effective_doppler_types = (
@@ -83,6 +83,10 @@ class RayleighMultipathChannel:
         n = np.arange(self.L, dtype = float) - center       # индекс центрального элемента фильтра
         kernel = np.sinc(n - frac_delay)
         kernel *= np.blackman(self.L)
+        dc_gain = float(np.sum(kernel))  # нормировка по DC, чтобы постоянный сигнал не менял средний уровень
+        if np.isclose(dc_gain, 0.0):
+            raise ValueError("fractional delay kernel has near-zero DC gain")
+        kernel /= dc_gain
         kernel /= np.sqrt(np.sum(np.abs(kernel) ** 2))
         return kernel.astype(np.float64)
 
