@@ -73,10 +73,8 @@ class ChannelEstimate():
         # В случае АБГШ c_0 - импульсная характеристика композитного канала
         c_0_trunc = c_0[int(sps_oversampling / 2) : - int(sps_oversampling / 2)]
         h = c_0_trunc[::oversampling]
-        E_h = np.sum(np.abs(h)**2)
-        h_norm = h / np.sqrt(E_h)
 
-        return h_norm
+        return h
 
     def build_reference_burst_waveform(self, burst_active_bits):
             mod = GMSKModulation({
