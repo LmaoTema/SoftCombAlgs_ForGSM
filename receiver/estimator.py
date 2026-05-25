@@ -33,8 +33,6 @@ class ChannelEstimate():
 
         _len = _p("est_channel_len_sps")
         self.est_channel_len_sps = int(_len) if _len is not None else 5 * self.sps
-
-        self.est_n_taps_keep = int(_p("est_n_taps_keep"))
         self.estimator_reg = float(_p("estimator_reg"))
 
         # Флаг, чтобы график рисовался один раз за весь прогон, а не на каждой точке.
