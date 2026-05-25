@@ -23,7 +23,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_compare_hard")
+results_path = Path("res_diff")
 
 csv_files = list(results_path.glob("*.csv"))
 
@@ -40,7 +40,7 @@ if not csv_files:
 
 plt.figure(figsize=(10, 7))
 
-axis_metric_global = None
+axis_metric_global = "ebn0_db"
 
 count = 0
 
@@ -80,19 +80,21 @@ for file in csv_files:
 
         curve_name = col.replace("_BER", "")
 
-        legend_label = f"{curve_name}_{file_label}"
-        color = ['r', 'g', 'b', 'c']
+        # legend_label = f"{curve_name}_{file_label}"
+        legend_label = ["Дифф., кодированные", "Дифф., весь пакет", "Дифф., некодированные",
+                         "MLSE, кодированные", "MLSE, весь пакет", "MLSE, некодированные",]
+        color = ['r', 'b', 'g', 'c']
 
         # if "uncoded" in curve_name.lower():
         if count == 0:
 
             plt.semilogy(
                 x_values,
-                df[col],
-                '--',
+                df[col],  
                 marker='o',
-                linewidth=3,
-                label=legend_label,
+                markersize=10,
+                linewidth=6,
+                label=legend_label[i],
                 c=color[i]
             )
 
@@ -101,15 +103,17 @@ for file in csv_files:
             plt.semilogy(
                 x_values,
                 df[col],
+                '--',
                 marker='o',
-                linewidth=3,
-                label=legend_label,
+                markersize=10,
+                linewidth=6,
+                label=legend_label[count + i],
                 c=color[i]
             )
 
         i += 1
 
-    count += 1
+    count += 3
 
 plt.grid(
     True,
@@ -120,7 +124,7 @@ plt.grid(
 
 if axis_metric_global == "dbm":
 
-    plt.xlabel("P_rx [dBm]", fontsize=12)
+    plt.xlabel("P_rx [dBm]", fontsize=14)
 
 elif axis_metric_global == "ebn0_db":
 
@@ -131,10 +135,11 @@ else:
     plt.xlabel("SNR [dB]")
 
 
-plt.ylabel("BER", fontsize=12)
-plt.title("BER TCH/FS AWGN", fontsize=14)
-plt.legend(fontsize=12, handlelength=4)
-# plt.ylim(10e-3, 0)
+plt.ylabel("BER", fontsize=16)
+plt.title("BER TCH/FS AWGN", fontsize=18)
+plt.legend(fontsize=14, handlelength=4, loc="upper right")
+plt.ylim(5e-4, 0)
+# plt.xlim(-116.2, -109.8)
 
 plt.tight_layout()
 plt.show()
