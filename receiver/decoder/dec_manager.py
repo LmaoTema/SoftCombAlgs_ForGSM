@@ -12,7 +12,7 @@ class ChannelDecoder(Block):
         elif scheme == "CS1":
             self.decoder = CS1Decoder(vit_mode=vit_mode, combining_method=combining_method)
         elif scheme == "MCS1":
-            self.decoder = MSC1Decoder()
+            self.decoder = MSC1Decoder(vit_mode=vit_mode, combining_method=combining_method)
         elif scheme == "MCS1":
             self.decoder = MSC5Decoder()
 

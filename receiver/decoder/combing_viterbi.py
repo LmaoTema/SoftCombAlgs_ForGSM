@@ -40,7 +40,7 @@ class ViterbiDecoderACS:
             raise ValueError("Должно быть минимум 2 сектора")
 
         llrs = [np.asarray(llr, dtype=np.float64) for llr in llr_list]
-        llrs = [np.nan_to_num(llr, nan=0.0) for llr in llrs]
+        
 
         n_steps = len(llrs[0]) // self.n_outputs
         n_sectors = len(llrs)

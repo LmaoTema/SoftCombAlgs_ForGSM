@@ -1,87 +1,120 @@
 import numpy as np
-from .viterbi_uni import ViterbiDecoder
+from .viterbi_manager import ViterbiManager
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 
-class MSC1Decoder:
-
+class HeaderDepuncturer:
     def __init__(self):
-
-        params = MSC_PARAMS["MCS1"]
-
-        self.header_bits = params["header_bits"]
-        self.data_bits = params["data_bits"]
-
-        self.header_crc = params["header_crc"]
-        self.data_crc = params["data_crc"]
-
-        self.viterbi = ViterbiDecoder(
-            constraint_length=7,
-            polynomials = [0x7B, 0x59, 0x6D]
-        )
-
-    def _depuncture_header(self, bits):
-        forbidden = {26,38,50,62,74,86,98,110,113,116}
-        punct12 = [5,8,11]
-
-        out = []
-        j = 0
-        for i in range(117):  # 117 = 39*3, точное количество кодированных бит
-            if i in forbidden or (i % 12 in punct12):
-                out.append(None)  # восстановление (заменяем выколотые на None)
-            else:
-                if j >= len(bits):
-                    raise ValueError("Header depuncturing: not enough input bits")
-                out.append(bits[j])
-                j += 1
-        return out
-
-    def _depuncture_data(self, bits):
-        exceptions = {73,136,199,262,325,388,451,514}
-        out = []
-        j = 0
-        for i in range(588):  
-            pos = i % 21
-            if pos in [2,5,8,10,11,14,17,20] and i not in exceptions:
-                out.append(None) 
-            else:
-                if j >= len(bits):
-                    raise ValueError("Data depuncturing: not enough input bits")
-                out.append(bits[j])
-                j += 1
-        return out
+        self.forbidden = {26, 38, 50, 62, 74, 86, 98, 110, 113, 116}
+        self.punct12 = [5, 8, 11]
 
     def process(self, bits):
+        out = []
+        j = 0
+        for i in range(117):
+            if i in self.forbidden or (i % 12 in self.punct12):
+                out.append(0)
+            else:
+                if j >= len(bits):
+                    raise ValueError("Header depuncturing: недостаточно бит")
+                out.append(bits[j])
+                j += 1
+        return out
 
-        if not getattr(self, "is_working", True):
-            return np.array(bits, dtype=int)
 
-        header_coded = bits[:80] 
-        data_coded = bits[80:452] 
+class DataDepuncturer:
+    def __init__(self, mode="P1"):
+        self.mode = mode
+        self.exceptions_p1 = {73, 136, 199, 262, 325, 388, 451, 514}
+        self.exceptions_p2 = {78, 141, 204, 267, 330, 393, 456, 519}
+
+    def process(self, bits):
+        out = []
+        j = 0
+        for i in range(588):
+            if self.mode == "P1":
+                pos = i % 21
+                if pos in [2, 5, 8, 10, 11, 14, 17, 20] and i not in self.exceptions_p1:
+                    out.append(0)
+                else:
+                    if j >= len(bits):
+                        raise ValueError("Data depuncturing: недостаточно бит")
+                    out.append(bits[j])
+                    j += 1
+            else:
+                pos = i % 21
+                if pos in [1, 4, 7, 9, 13, 15, 16, 19] and i not in self.exceptions_p2:
+                    out.append(0)
+                else:
+                    if j >= len(bits):
+                        raise ValueError("Data depuncturing: недостаточно бит")
+                    out.append(bits[j])
+                    j += 1
+        return out
+
+
+class MSC1Decoder:
+    def __init__(self, cps="P1", vit_mode="vit_soft", combining_method="PDMRC"):
+        params = MSC_PARAMS["MCS1"]
+
+        self.header_crc_len = params["header_crc"]
+        self.data_crc_len = params["data_crc"]
         
-        header_full = self._depuncture_header(header_coded)
-        data_full = self._depuncture_data(data_coded)
-        
-        h_dec = self.viterbi.decode(header_full)
-        d_dec = self.viterbi.decode(data_full)
-        
-        self.afterdecoder = d_dec[:]
+        self.viterbi = ViterbiManager(
+            constraint_length=7,
+            polynomials=[0x7B, 0x59, 0x6D], 
+            combining_method=combining_method, 
+            mode=vit_mode
+        )
 
-        h_dec = h_dec[:-self.header_crc]
-        d_dec = d_dec[:-18]
+        self.header_depunct = HeaderDepuncturer()
+        self.data_depunct = DataDepuncturer(cps)
 
-        frame = np.array(h_dec + d_dec, dtype=int)
-    
-        
-        self.header_coded_rx = header_coded
-        self.data_coded_rx = data_coded
+    def process(self, input_data):
 
-        self.header_full_rx = header_full
-        self.data_full_rx = data_full
+        if isinstance(input_data, np.ndarray):
+            input_data = input_data.tolist()
 
-        self.header_decoded = h_dec
-        self.data_decoded = d_dec
 
-        self.frame_decoded = frame
-        
-        return frame
+        if isinstance(input_data, (list, tuple)) and len(input_data) > 0:
+            first_element = input_data[0]
+            
+
+            if isinstance(first_element, (list, tuple, np.ndarray)):
+
+                if len(input_data[0]) != 456:
+                    raise ValueError(f"Каждый сектор должен быть длиной 452, получено {len(input_data[0])}")
+
+                header_sectors = []
+                data_sectors = []
+
+                for sector in input_data:
+                    if len(sector) != 456:
+                        raise ValueError(f"Все сектора должны быть длиной 452")
+                    
+                    h = self.header_depunct.process(sector[:80])
+                    d = self.data_depunct.process(sector[80:452])
+                    header_sectors.append(h)
+                    data_sectors.append(d)
+
+                header_dec = self.viterbi.decode(header_sectors)
+                data_dec = self.viterbi.decode(data_sectors)
+
+            else:
+                if len(input_data) != 456:
+                    raise ValueError(f"Ожидалось 452 бита, получено {len(input_data)}")
+
+                header_full = self.header_depunct.process(input_data[:80])
+                data_full = self.data_depunct.process(input_data[80:452])
+
+                header_dec = self.viterbi.decode(header_full)
+                data_dec = self.viterbi.decode(data_full)
+
+        else:
+            raise ValueError(f"Неверный формат входных данных: {type(input_data)}")
+
+
+        header_final = header_dec[:31]
+        data_final = data_dec[:178]
+
+        return header_final + data_final
