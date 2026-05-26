@@ -24,8 +24,10 @@ class MatchedFilter(Block):
     
             rx_burst = rx_signal[start_idx  : end_idx]
 
-            # Свертка сигнала с ИХ СФ 
-            burst_match = np.convolve(rx_burst, np.conj(h_est[::-1]))
+            # Свертка сигнала с ИХ СФ
+            E_h = np.sum(np.abs(h)**2)
+            h_mf = np.conj(h_est[::-1]) / np.sqrt(E_h)
+            burst_match = np.convolve(rx_burst, h_mf)
             # Поиск главного пика
             peak_idx = int(np.argmax(np.abs(h_est)))
             # Считаем сдвиг после свертки
