@@ -128,7 +128,7 @@ if axis_metric_global == "dbm":
 
 elif axis_metric_global == "ebn0_db":
 
-    plt.xlabel("Eb/N0 [dB]")
+    plt.xlabel("Eb/N0 [dB]",  fontsize=16)
 
 else:
 
@@ -137,9 +137,9 @@ else:
 
 plt.ylabel("BER", fontsize=16)
 plt.title("BER TCH/FS AWGN", fontsize=18)
-plt.legend(fontsize=14, handlelength=4, loc="upper right")
+plt.legend(fontsize=13, handlelength=6, loc="upper right")
 plt.ylim(5e-4, 0)
-# plt.xlim(-116.2, -109.8)
+plt.xlim(0, 24)
 
 plt.tight_layout()
 plt.show()
