@@ -3,6 +3,7 @@ import numpy as np
 from core.base import BasePipeline
 import matplotlib.pyplot as plt
 
+
 class NonePipeline(BasePipeline):
 
     def prepare_point(self, x_value, ber_ruler=None):
@@ -32,11 +33,18 @@ class NonePipeline(BasePipeline):
         
         # Для комбинации 0001000
         # interleaved_bits[4:8] = np.zeros(4)
+
+        # Для диплома, рисунки 
+        # interleaved_bits[4:8] = np.zeros(4)
+
+        # interleaved_bits[9] = 1
+        
         tx_signal, tx_linear_signal = self.modulator.process(interleaved_bits)
 
         is_compare_signal = False
 
         if is_compare_signal:
+            import matplotlib.ticker as ticker
 
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
 
@@ -47,25 +55,26 @@ class NonePipeline(BasePipeline):
 
             num_tap = len(tx_signal)
 
-            ax1.plot(np.arange(num_tap) / 4,
-                      np.real(tx_signal[:num_tap]), label="GMSK", lw=3)
+            # ax1.plot(np.arange(num_tap) / 4,
+            #           np.real(tx_signal[:num_tap]), lw=4)
             ax1.plot(np.arange(num_tap) / 4,
                       np.real(tx_linear_signal[:num_tap]), label="Линеаризованная GMSK", lw=3)
             ax1.grid()
-            ax1.set_ylabel("Вещественная часть", fontsize=y_size)
+            ax1.set_ylabel("I", fontsize=y_size)
             ax1.set_xlabel("t / T", fontsize=x_size)
-            ax1.legend(fontsize=label_size, loc = "upper right")
-            ax1.set_xlim(-0.5, 148.5)
+            # ax1.legend(fontsize=label_size, loc = "upper right")
+            ax1.set_xlim(-0.5, 10.5)
+            ax1.xaxis.set_major_locator(ticker.MultipleLocator(1))
 
-            ax2.plot(np.arange(num_tap) / 4,
-                      np.imag(tx_signal[:num_tap]), label="GMSK", lw=3)
+            ax2.plot(np.a.imag(tx_signal[:num_tap]), lw=4)
             ax2.plot(np.arange(num_tap) / 4,
                       np.imag(tx_linear_signal[:num_tap]), label="Линеаризованная GMSK", lw=3)
             ax2.grid()
-            ax2.set_ylabel("Мнимая часть", fontsize=y_size)
+            ax2.set_ylabel("Q", fontsize=y_size)
             ax2.set_xlabel("t / T", fontsize=x_size)
-            ax2.legend(fontsize=label_size, loc = "upper right")
-            ax2.set_xlim(-0.5, 148.5)
+            # ax2.legend(fontsize=label_size, loc = "upper right")
+            ax2.set_xlim(-0.5, 10.5)
+            ax2.xaxis.set_major_locator(ticker.MultipleLocator(1))
 
             plt.tight_layout()
             plt.show()

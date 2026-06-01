@@ -95,9 +95,9 @@ def main():
 
         while not ber_ruler.is_point_finished():
 
-            # bits = np.random.randint(0, 2, frame_bits)
+            bits = np.random.randint(0, 2, frame_bits)
             # Одни и те же биты
-            bits = np.load('my_bits.npy')
+            # bits = np.load('my_bits.npy')
 
             result = pipeline.process(bits)
 

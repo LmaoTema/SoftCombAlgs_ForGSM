@@ -1,6 +1,8 @@
 import numpy as np
 import csv
 from config import block_params
+import matplotlib.pyplot as pltx
+import matplotlib.ticker as ticker
 
 
 class GMSKDetector:
@@ -27,6 +29,19 @@ class GMSKDetector:
             rhh_full = np.convolve(h, h_mf)
             center_idx = h_mf.size - 1
             rhh = rhh_full[center_idx :: self.sps]
+
+        is_plot_rhh = False
+
+        if is_plot_rhh:
+            (fig, plt) = pltx.subplots(figsize=(12, 6))
+
+            plt.plot(np.arange(39) / 4 - 4 - 3/4, rhh_full, lw=5, c="r")
+            plt.set_xlabel("t / T", fontsize=18)
+            plt.set_ylabel("x(t)", fontsize=18)
+            plt.xaxis.set_major_locator(ticker.MultipleLocator(1))
+            
+            plt.grid()
+            pltx.show()
 
         return rhh
 

@@ -27,7 +27,7 @@ BER = {
     "prx_dbm_max_step": 2.0,
     "prx_dbm_max": -90.0,
 
-    "min_BER": 1e-3,
+    "min_BER": 1e-4,
     "min_FER": 1,
     
     "min_NumErBits": 500,
@@ -70,7 +70,7 @@ modulation_params = {
     "h": 0.5,
     "gaus_duration": 4,
     "rect_duration": 1,
-    "type_demod": "diff_phase" # diff_phase / vit_hard / vit_soft 
+    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
