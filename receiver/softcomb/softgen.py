@@ -1,14 +1,15 @@
 import numpy as np
 from pathlib import Path
 import json
-
+import matplotlib as plt
+from scipy.stats import norm
 
 class SoftGenerator:
     def __init__(self, channel_type="TCHFS", channel_model="awgn", profile="TU", llr_scale=8.0, is_working=True):
         self.llr_scale = llr_scale
         self.is_working = is_working
         
-        if channel_type in ["CS1", "TCHFS"]:
+        if channel_type in ["CS1", "TCHFS", "MCS1"]:
             if channel_model == "awgn":  
                 dataset_path = Path(__file__).resolve().parent / "soft_data" / "gsm_omni_sector_pdtch_cs1_awgn.json"
                 
@@ -21,7 +22,7 @@ class SoftGenerator:
             elif channel_model in ["rayleigh_single", "rayleigh_multipath"] and profile == "HT":
                 dataset_path = Path(__file__).resolve().parent / "soft_data" / "gsm_omni_sector_pdtch_cs1_ht100.json"
                 
-        elif channel_type in ["MCS1", "MCS5"]:
+        elif channel_type in ["MCS5"]:
             if channel_model == "awgn":  
                 dataset_path = Path(__file__).resolve().parent / "soft_data" / "gsm_omni_sector_pdtch_mcs5_awgn.json"
                 
@@ -40,9 +41,9 @@ class SoftGenerator:
         data = sorted(data, key=lambda x: x["rssi"])
         # в случае АБГШ обрезаем до 10 первых точек
         
-        data = data[:10]
+        data = data[:20]
             
-        ref_rssi = -108.0
+        ref_rssi = -115.0
         self.rssi_db = np.array([d["rssi"] for d in data]) + ref_rssi
         
         self.mean = np.array([d["raw_llr_mean_abs"][0] for d in data])
@@ -78,44 +79,20 @@ class SoftGenerator:
         N = len(bits)
         idx = rssi
         
-        mu = self.mean[idx]
+        # mu = self.mean[idx]
         sigma = self.std[idx]
         minv_val = self.minv[idx]
         maxv_val = self.maxv[idx]
 
-        llr_mean = mu * (1 - 2*bits)
-
+        q_inv = norm.ppf(1 - self.uncoded_ber[idx])
+        m = q_inv * sigma 
+        llr_mean = m * (1 - 2*bits)
         llr = np.random.normal(loc=llr_mean, scale=sigma, size=N)
+        
         llr = np.clip(llr, minv_val, maxv_val)
-
         llr = (np.clip(llr / self.llr_scale, -1.0, 1.0) * 127.0).astype(np.int8)
-        
-        target_ber = self.uncoded_ber[idx]
-
-        hard = (llr < 0).astype(np.int8)
-        current_errors = np.sum(hard != bits)
-
-        target_errors = int(target_ber * N)
-        delta = target_errors - current_errors
-        
-        if delta > 0:
-            idx_sorted = np.argsort(np.abs(llr))
-
-            candidates = idx_sorted[hard[idx_sorted] == bits[idx_sorted]]
-            
-            flip_idx = candidates[:delta]
-            
-            llr[flip_idx] *= -1
-            
-        elif delta < 0:
-            idx_sorted = np.argsort(np.abs(llr))
-            
-            candidates = idx_sorted[hard[idx_sorted] != bits[idx_sorted]]
-            
-            fix_idx = candidates[:abs(delta)]
-            
-            llr[fix_idx] *= -1    
-        
-        hard = np.where(llr < 0, -1, 1).astype(np.int8)
-        
+        # abs_llr = np.abs(llr)
+        # mean_abs_llr = np.mean(abs_llr)
+        # print(llr_mean)
+        # print(mean_abs_llr)        
         return llr

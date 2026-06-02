@@ -17,8 +17,8 @@ class HalfBERRuler:
 
         self.stop_by_min_BER = kwargs.get("stop_by_min_BER", False)
         self.min_BER = kwargs.get("min_BER", 1e-3)
-        self.MinNumErBits = kwargs.get("min_NumErBits", 500)
-        self.MinNumTrFrames = kwargs.get("min_NumTrFrames", 1000)
+        self.MinNumErBits = kwargs.get("min_NumErBits", 800)
+        self.MinNumTrFrames = kwargs.get("min_NumTrFrames", 10000)
         self.MaxNumTrBits = kwargs.get("max_NumTrBits", 5e6)
         self.MinNumErFrames = kwargs.get("min_NumErFrames", 500)
 
