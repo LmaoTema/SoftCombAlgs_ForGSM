@@ -8,7 +8,7 @@ simulation_params = {
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode":  "none",                 # "none"/ "half" / "full"    
     "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
-    "file_name":        "test_diff_phase",    
+    "file_name":        "old_increment",    
 }
 
 block_params = {
@@ -41,7 +41,7 @@ BER = {
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": False
+    "stop_by_min_BER": True
 }
 
 mode_params = {

@@ -35,8 +35,7 @@ class NonePipeline(BasePipeline):
         # interleaved_bits[4:8] = np.zeros(4)
 
         # Для диплома, рисунки 
-        # interleaved_bits[4:8] = np.zeros(4)
-
+        interleaved_bits[4:8] = np.zeros(4)
         # interleaved_bits[9] = 1
         
         tx_signal, tx_linear_signal = self.modulator.process(interleaved_bits)

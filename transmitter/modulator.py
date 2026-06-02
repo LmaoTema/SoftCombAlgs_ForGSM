@@ -101,13 +101,13 @@ class GMSKModulation:
             step = 0
             ax_size = 14
 
-            fig, (ax2, ax3) = plt.subplots(2, 1, figsize=(12,6))       
-            # ax1.step(np.arange(25 - shift_plot), alpha[:25 - shift_plot], where='post', lw=4)
-            # ax1.set_ylabel("Символы", fontsize=ax_size)
-            # ax1.set_xlabel("t / T", fontsize=ax_size) 
-            # ax1.grid()
-            # ax1.set_xlim(-0.5, 10.5 - shift_plot)
-            # ax1.xaxis.set_major_locator(ticker.MultipleLocator(1))
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12,6))       
+            ax1.step(np.arange(25 - shift_plot), alpha[:25 - shift_plot], where='post', lw=4)
+            ax1.set_ylabel("Символы", fontsize=ax_size)
+            ax1.set_xlabel("t / T", fontsize=ax_size) 
+            ax1.grid()
+            ax1.set_xlim(-0.5, 10.5)
+            ax1.xaxis.set_major_locator(ticker.MultipleLocator(1))
             
 
         for i in range(num_bits):
@@ -172,7 +172,7 @@ class GMSKModulation:
             ax3.axhline(y=np.pi * 7 / 2, color='r', linestyle='--', lw=1)
             ax3.set_ylabel("Рез. фаза, рад", fontsize=ax_size) 
             ax3.set_xlabel("t / T", fontsize=ax_size) 
-            ax3.set_ylim(0, 7)
+            ax3.set_ylim(0, 12)
             ax3.grid()
             ax3.set_xlim(-0.5, 10.5)
             ax3.yaxis.set_major_locator(ticker.MultipleLocator(np.pi/2))
@@ -452,6 +452,67 @@ class GMSKModulation:
                 # ax3.xaxis.set_major_locator(ticker.MultipleLocator(1))
                 # ax3.yaxis.set_major_formatter(ticker.FuncFormatter(format_func))
 
+                plt.tight_layout()
+                plt.show()
+
+            is_plot_true_gmsk = False
+
+            if is_plot_true_gmsk:
+                shift_plot = 0
+                ax_size = 14
+
+                fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12,6))       
+                ax1.step(np.arange(25 - shift_plot), alpha[:25 - shift_plot], where='post', lw=4)
+                ax1.set_ylabel("Символы", fontsize=ax_size)
+                ax1.set_xlabel("t / T", fontsize=ax_size) 
+                ax1.grid()
+                ax1.set_xlim(-0.5, 10.5)
+                ax1.xaxis.set_major_locator(ticker.MultipleLocator(1))
+
+                def format_func(value, f):
+                    n = round(2 * value / np.pi)
+                    if n == 0:
+                        return "0"
+                    elif n == 1:
+                        return "$pi/2$"
+                    elif n == -1:
+                        return "$-pi/2$"
+                    elif n % 2 == 0:
+                        res = n // 2
+                        if res == 1: 
+                            return "$pi$"
+                        if res == -1:
+                            return "$-pi$"
+                        
+                        return f"${res}pi$"
+                    else:
+                        return f"${n}pi/2$"      
+
+                ax2.plot(np.arange((25 - shift_plot) * 4) / 4, phi[shift_plot * 4 : 100], lw=4)
+                ax2.axhline(y=np.pi, color='r', linestyle='--', lw=1)
+                ax2.axhline(y=np.pi * 3 / 2, color='r', linestyle='--', lw=1)
+                ax2.axhline(y=3*np.pi, color='r', linestyle='--', lw=1)
+                ax2.axhline(y=np.pi * 7 / 2, color='r', linestyle='--', lw=1)
+                ax2.set_ylabel("Рез. фаза, рад", fontsize=ax_size) 
+                ax2.set_xlabel("t / T", fontsize=ax_size) 
+                ax2.set_ylim(0, 12)
+                ax2.grid()
+                ax2.set_xlim(-0.5, 10.5)
+                ax2.yaxis.set_major_locator(ticker.MultipleLocator(np.pi/2))
+                ax2.yaxis.set_major_formatter(ticker.FuncFormatter(format_func))
+                ax2.xaxis.set_major_locator(ticker.MultipleLocator(1))
+                
+                ax3.plot(np.arange((25 - shift_plot) * 4) / 4, np.real(signal_envelope[shift_plot * 4 : 100]), lw=4, label="Re")
+                ax3.plot(np.arange((25 - shift_plot) * 4) / 4, np.imag(signal_envelope[shift_plot * 4 : 100]), lw=4, label="Im")
+                ax3.axhline(y=0, color='r', linestyle='--', lw=1)
+                ax3.set_ylabel("Квадратурные сост.", fontsize=ax_size)
+                ax3.set_xlabel("t / T", fontsize=ax_size) 
+                ax3.grid()
+                ax3.set_xlim(-0.5, 10.5)
+                ax3.xaxis.set_major_locator(ticker.MultipleLocator(1))
+                ax3.legend(fontsize=ax_size)
+
+                # plt.suptitle("Со сдвигом") 
                 plt.tight_layout()
                 plt.show()
             

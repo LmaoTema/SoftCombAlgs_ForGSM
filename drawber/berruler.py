@@ -281,7 +281,7 @@ class BERRuler:
         self._append_channel_metric("bit_rate_hz", default = None)
         self._append_channel_metric("outage", default = 0.0)
         
-        main_ber = list(self.results.values())[0]["BER"][-1]
+        main_ber = list(self.results.values())[1]["BER"][-1]
         if self.stop_by_min_BER and np.isfinite(main_ber) and main_ber < self.MinBER:
             self.isStop = True
 
