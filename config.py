@@ -31,7 +31,7 @@ BER = {
     "min_FER": 1,
     
     "min_NumErBits": 500,
-    "min_NumErFrames": 500,
+    "min_NumErFrames": 100,
     "min_NumTrFrames": 1000,
     
     "max_NumTrBits": np.inf,
