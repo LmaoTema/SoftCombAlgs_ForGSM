@@ -24,7 +24,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_tch_h_diff")
+results_path = Path("res_tch_hs")
 
 csv_files = list(results_path.glob("*.csv"))
 
@@ -129,19 +129,20 @@ if axis_metric_global == "dbm":
 
 elif axis_metric_global == "ebn0_db":
 
-    ax.set_xlabel("Eb/N0 [dB]",  fontsize=16)
+    ax.set_xlabel("$E_b/N_0$ [дБ]",  fontsize=18)
 
 else:
 
     ax.set_alphaxlabel("SNR [dB]")
 
 
-ax.set_ylabel("BER", fontsize=16)
-ax.set_title("BER TCH/FS AWGN", fontsize=18)
-ax.legend(fontsize=13, handlelength=6, loc="upper right")
-ax.tick_params(axis='both', which='major', labelsize=16)
-# plt.ylim(5e-4, 0)
-# plt.xlim(0, 24)
+ax.set_ylabel("BER", fontsize=18)
+ax.set_title("TCH/FS АБГШ", fontsize=20)
+ax.legend(fontsize=16, handlelength=2.5, loc="upper right")
+ax.tick_params(axis='both', which='major', labelsize=18)
+
+plt.ylim(1e-5, 1)
+plt.xlim(0, 14)
 
 plt.tight_layout()
 plt.show()
