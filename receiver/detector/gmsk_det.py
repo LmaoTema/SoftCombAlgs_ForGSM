@@ -408,7 +408,7 @@ class GMSKDetector:
                 sampled_burst = burst[self.sps - 1 :: self.sps]
 
                 # Строим решетку с инкрменетами
-                trans_table, old_path_metrics = self.calc_metric(increment_old, sampled_burst, start_state=0)
+                trans_table, old_path_metrics = self.calc_metric(increment_new, sampled_burst, start_state=0)
 
                 # # Строим решетку без инкрменетов
                 # trans_table_2, old_path_metrics_2 = self.calc_metric(increment_new, sampled_burst, start_state=0)

@@ -50,7 +50,7 @@ class GMSKModulation:
         d_curr = bits ^ bits_previous
         alpha = 1 - 2 * d_curr
 
-        # alpha = 1 - 2 * bits
+        alpha = 1 - 2 * bits
 
         return alpha
 
@@ -231,16 +231,16 @@ class GMSKModulation:
         c_0_trunc = c_0[int(sps_oversampling / 2) : - int(sps_oversampling / 2)]
         h = c_0_trunc[::oversampling]
 
-        is_plot_h = False
+        is_plot_h = True
 
         if is_plot_h:
             ax_size = 16
 
             plt.figure(figsize=(12,6))
-            plt.plot(np.arange(len(c_0)) / 400, c_0, lw=4, c="r")
+            plt.plot(np.arange(len(c_0_trunc)) / 400, c_0_trunc, lw=4, c="r")
             plt.grid()
             plt.xlabel("t / T", fontsize=ax_size)
-            plt.ylabel("$c_0(t)$", fontsize=ax_size)
+            plt.ylabel("$q(t)$", fontsize=ax_size)
             plt.show()
 
         return h
@@ -260,7 +260,7 @@ class GMSKModulation:
         sig_len = num_bits * sps + h.size
         linear_signal  = np.zeros(sig_len, dtype=complex)
 
-        is_plot_linear = False
+        is_plot_linear = True
 
         if is_plot_linear:
             lin_sig_plot = np.zeros(20)

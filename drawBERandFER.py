@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import matplotlib.pyplot as plt
+# import matplotlib.ticker as ticker
 
 ONLY_CURVES = None
 
@@ -23,7 +24,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_tch_hs")
+results_path = Path("res_tch_h_diff")
 
 csv_files = list(results_path.glob("*.csv"))
 
@@ -38,9 +39,9 @@ if not csv_files:
     print("No CSV files found in Results/")
     exit()
 
-plt.figure(figsize=(10, 7))
+fig, ax = plt.subplots(1, 1, figsize=(12, 7))
 
-axis_metric_global = "ebn0_db"
+axis_metric_global = "ebn0_db"   # "ebn0_db"
 
 count = 0
 
@@ -81,14 +82,14 @@ for file in csv_files:
         curve_name = col.replace("_BER", "")
 
         # legend_label = f"{curve_name}_{file_label}"
-        legend_label = ["Дифф., кодированные", "Дифф., весь пакет", "Дифф., некодированные", "a"
-                         "MLSE, кодированные", "MLSE, весь пакет", "MLSE, некодированные", "b"]
+        legend_label = ["Дифф., некодированные", "Дифф., весь пакет", "Дифф., некодированные",
+                         "MLSE, некодированные", "MLSE, весь пакет", "MLSE, некодированные"]
         color = ['r', 'b', 'g', 'c']
 
         # if "uncoded" in curve_name.lower():
         if count == 0:
 
-            plt.semilogy(
+            ax.semilogy(
                 x_values,
                 df[col],  
                 marker='o',
@@ -100,7 +101,7 @@ for file in csv_files:
 
         else:
         
-            plt.semilogy(
+            ax.semilogy(
                 x_values,
                 df[col],
                 '--',
@@ -115,7 +116,7 @@ for file in csv_files:
 
     count += 3
 
-plt.grid(
+ax.grid(
     True,
     which='both',
     linestyle='--',
@@ -124,20 +125,21 @@ plt.grid(
 
 if axis_metric_global == "dbm":
 
-    plt.xlabel("P_rx [dBm]", fontsize=14)
+    ax.set_xlabel("P_rx [dBm]", fontsize=14)
 
 elif axis_metric_global == "ebn0_db":
 
-    plt.xlabel("Eb/N0 [dB]",  fontsize=16)
+    ax.set_xlabel("Eb/N0 [dB]",  fontsize=16)
 
 else:
 
-    plt.xlabel("SNR [dB]")
+    ax.set_alphaxlabel("SNR [dB]")
 
 
-plt.ylabel("BER", fontsize=16)
-plt.title("BER TCH/FS AWGN", fontsize=18)
-plt.legend(fontsize=13, handlelength=6, loc="upper right")
+ax.set_ylabel("BER", fontsize=16)
+ax.set_title("BER TCH/FS AWGN", fontsize=18)
+ax.legend(fontsize=13, handlelength=6, loc="upper right")
+ax.tick_params(axis='both', which='major', labelsize=16)
 # plt.ylim(5e-4, 0)
 # plt.xlim(0, 24)
 

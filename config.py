@@ -25,17 +25,17 @@ BER = {
     "prx_dbm_init_step": 2.0,
     "prx_dbm_min_step": 2.0,
     "prx_dbm_max_step": 2.0,
-    "prx_dbm_max": -90.0,
+    "prx_dbm_max": -70.0,
 
-    "min_BER": 1e-4,
+    "min_BER": 1e-5,
     "min_FER": 1,
     
     "min_NumErBits": 500,
-    "min_NumErFrames": 1000,
+    "min_NumErFrames": 500,
     "min_NumTrFrames": 1000,
     
-    "max_NumTrBits": 5e6,
-    "max_NumTrFrames": 2000,
+    "max_NumTrBits": np.inf,
+    "max_NumTrFrames": np.inf,
     
     "max_BERRate": 5,
     "min_BERRate": 2,
