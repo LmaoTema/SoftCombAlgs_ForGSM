@@ -24,7 +24,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_tch_hs")
+results_path = Path("res_compare")
 
 csv_files = list(results_path.glob("*.csv"))
 
@@ -82,8 +82,9 @@ for file in csv_files:
         curve_name = col.replace("_BER", "")
 
         # legend_label = f"{curve_name}_{file_label}"
-        legend_label = ["Дифф., некодированные", "Дифф., весь пакет", "Дифф., некодированные",
-                         "MLSE, некодированные", "MLSE, весь пакет", "MLSE, некодированные"]
+        legend_label = ["Дифф., некодированные", "Дифф., весь пакет", "Дифф., некодированные", "a"
+                         "MLSE, некодированные", "MLSE, весь пакет", "MLSE, некодированные", "b"
+                         " некодированные",  "весь пакет",  "некодированные", "b"]
         color = ['r', 'b', 'g', 'c']
 
         # if "uncoded" in curve_name.lower():
