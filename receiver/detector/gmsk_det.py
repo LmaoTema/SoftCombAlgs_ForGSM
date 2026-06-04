@@ -22,6 +22,19 @@ class GMSKDetector:
         rhh = rhh_full[center_idx :: self.sps]
 
         return rhh
+    
+    def calc_old_rhh(self, h):
+        # Раньше в СФ и в модуляторе была нормирвоаннная ИХ
+        E_h = np.sum(np.abs(h**2))
+        h_mf = h / np.sqrt(E_h)
+        h = h_mf
+
+        rhh_full = np.convolve(h, np.conj(h[::-1]))
+        center_idx = h.size - 1
+        rhh = rhh_full[center_idx :: self.sps]
+
+        return rhh
+
 
     # Определяем влияние предыдущих бит для каждого состояния
     def calc_increment(self, rhh):
@@ -272,7 +285,7 @@ class GMSKDetector:
                 if self.mf_is_working == False:
                     increment = np.zeros(16)
                 else:
-                    rhh = self.calc_rhh(h[b])
+                    rhh = self.calc_old_rhh(h[b])
                     increment = self.calc_increment(rhh)
 
                 # Берем отсчеты на конце символьного интервала
