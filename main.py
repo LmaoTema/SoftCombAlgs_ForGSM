@@ -95,9 +95,9 @@ def main():
 
         while not ber_ruler.is_point_finished():
 
-            # bits = np.random.randint(0, 2, frame_bits)
+            bits = np.random.randint(0, 2, frame_bits)
             # Одни и те же биты
-            bits = np.load('my_bits.npy')
+            # bits = np.load('my_bits.npy')
 
             result = pipeline.process(bits)
 
@@ -107,11 +107,11 @@ def main():
             detector_merge_distances.append(result["detector_merge_distances"])
 
             is_llr = False
-            is_dist = False
+            is_dist = True
 
             counter += 1
 
-            if counter == 100:
+            if counter == 50:
                 rx_output = result["channel_output"]
 
                 if is_llr:

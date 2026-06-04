@@ -24,7 +24,7 @@ def normalize_axis_metric(axis_metric):
 
     return aliases.get(normalized, "dbm")
 
-results_path = Path("res_mcs_h_s")
+results_path = Path("res_cs_s_dfe")
 
 csv_files = list(results_path.glob("*.csv"))
 
@@ -82,8 +82,11 @@ for file in csv_files:
         curve_name = col.replace("_BER", "")
 
         # legend_label = f"{curve_name}_{file_label}"
-        legend_label = ["Жесткие, заголовок", "Жесткие, данные", "Жесткие, весь пакет", "Жесткие, некодированные",
-                         "Мягкие, заголовок", "Мягкие, данные", "Мягкие, весь пакет", "Мягкие, некодированные"]
+        legend_label = ["DFE, кодированные", "DFE, весь пакет", "DFE, некодированные",
+                         "MLSE+SOVA, кодированные", "MLSE+SOVA, весь пакет", "MLSE+SOVA, некодированные"]
+        update_count = 2
+
+
         color = ['r', 'b', 'g', 'c']
 
         # if "uncoded" in curve_name.lower():
@@ -114,7 +117,7 @@ for file in csv_files:
 
         i += 1
 
-    count += 4
+    count += update_count
 
 ax.grid(
     True,
@@ -129,7 +132,7 @@ if axis_metric_global == "dbm":
 
 elif axis_metric_global == "ebn0_db":
 
-    ax.set_xlabel("$E_b/N_0$ [дБ]",  fontsize=18)
+    ax.set_xlabel("$E_b$/$N_0$ [дБ]",  fontsize=18)
 
 else:
 
@@ -137,7 +140,7 @@ else:
 
 
 ax.set_ylabel("BER", fontsize=18)
-ax.set_title("MCS1 АБГШ", fontsize=20)
+ax.set_title("TCH/FS АБГШ", fontsize=20)
 ax.legend(fontsize=16, handlelength=2.5, loc="upper right")
 ax.tick_params(axis='both', which='major', labelsize=18)
 

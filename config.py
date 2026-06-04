@@ -21,7 +21,7 @@ block_params = {
 }
 
 BER = {
-    "prx_dbm_init": -118.0,
+    "prx_dbm_init": -115.0 + 0,
     "prx_dbm_init_step": 2.0,
     "prx_dbm_min_step": 2.0,
     "prx_dbm_max_step": 2.0,
@@ -70,7 +70,7 @@ modulation_params = {
     "h": 0.5,
     "gaus_duration": 4,
     "rect_duration": 1,
-    "type_demod": "vit_hard" # diff_phase / vit_hard / vit_soft 
+    "type_demod": "vit_soft" # diff_phase / vit_hard / vit_soft 
 }
 
 equalizer_params = {
