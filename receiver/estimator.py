@@ -7,7 +7,7 @@ class ChannelEstimate():
     PLOT_CHANNEL_ESTIMATE = False
 
     DEFAULTS = {
-        "est_channel_len_sps": 8,      # длина оцениваемой ИХ в отсчётах (None -> 5*sps)
+        "est_channel_len_sym": 4,      # длина оцениваемой ИХ в отсчётах (None -> 5*sps)
         "estimator_reg":       1e-4,   # регуляризация Тихонова в LS-оценке (X^H X + reg*I)
     }
 
@@ -31,8 +31,8 @@ class ChannelEstimate():
         def _p(key):
             return modulation_params.get(key, self.DEFAULTS[key])
 
-        _len = _p("est_channel_len_sps")
-        self.est_channel_len_sps = int(_len) if _len is not None else 5 * self.sps
+        _len = _p("est_channel_len_sym")
+        self.est_channel_len_sym = int(_p("est_channel_len_sym"))
         self.estimator_reg = float(_p("estimator_reg"))
 
         # Флаг, чтобы график рисовался один раз за весь прогон, а не на каждой точке.
@@ -97,6 +97,21 @@ class ChannelEstimate():
 
             tx_ref = mod.process_mod(np.asarray(burst_active_bits, dtype=int))
             return tx_ref
+        
+    def _best_decimation_phase(self, rx_train, tx_train):
+        
+        sps = self.sps
+        best_phase, best_score = 0, -1.0
+        for ph in range(sps):
+            txs = tx_train[ph::sps]
+            rxs = rx_train[ph::sps]
+            n = min(len(txs), len(rxs))
+            if n < 2:
+                continue
+            score = np.abs(np.vdot(txs[:n], rxs[:n]))
+            if score > best_score:
+                best_score, best_phase = score, ph
+        return best_phase
     
     def h_rayleigh(self, rx_burst, tx_ref_burst):
         sps = self.sps
@@ -113,67 +128,69 @@ class ChannelEstimate():
         rx_train = np.asarray(rx_burst[train_start:train_end], dtype=np.complex128)
         tx_train = np.asarray(tx_ref_burst[train_start:train_end], dtype=np.complex128)
 
+        phase = self._best_decimation_phase(rx_train, tx_train)
+        tx_sym = tx_train[phase::sps]
+        rx_sym = rx_train[phase::sps]
+        
         # оценка delay по корреляции 
-        corr = np.correlate(rx_train, tx_train, mode="full") # вычисляет полную взаимную корреляцию входных данных
-        delay = np.argmax(np.abs(corr)) - len(tx_train) + 1 
+        corr = np.correlate(rx_sym, tx_sym, mode="full") # вычисляет полную взаимную корреляцию входных данных
+        delay = np.argmax(np.abs(corr)) - len(tx_sym) + 1 
 
         # Выравнивание 
         if delay > 0:
-            rx_train_aligned = rx_train[delay:]
-            tx_train_aligned = tx_train[:len(rx_train_aligned)]
+            rx_sym = rx_sym[delay:]
+            tx_sym = tx_sym[:len(rx_sym)]
         else:
-            tx_train_aligned = tx_train[-delay:]
-            rx_train_aligned = rx_train[:len(tx_train_aligned)]
+            tx_sym = tx_sym[-delay:]
+            rx_sym = rx_sym[:len(tx_sym)]
 
-        N = min(len(tx_train_aligned), len(rx_train_aligned))
+        N = min(len(tx_sym), len(rx_sym))
 
-        L_sps = self.est_channel_len_sps
+        L_sym = self.est_channel_len_sym
 
         # y[n] = sum_k h[k] x[n-k] 
-        rows = N - L_sps + 1 # количество строк в матрице
-        X = np.zeros((rows, L_sps), dtype=np.complex128)
+        rows = N - L_sym + 1 # количество строк в матрице
+        X = np.zeros((rows, L_sym), dtype=np.complex128)
 
         for i in range(rows):
-            seg = tx_train_aligned[i:i + L_sps] # выделение окна в tx_train длиной L_sps
+            seg = tx_sym[i:i + L_sym] # выделение окна в tx_train длиной L_sps
             X[i, :] = seg[::-1] # переворот окна для свертки
 
-        y = rx_train_aligned[L_sps - 1:] 
+        y = rx_sym[L_sym - 1:] 
 
         reg = self.estimator_reg
-        A = X.conj().T @ X + reg * np.eye(L_sps, dtype=np.complex128)
+        A = X.conj().T @ X + reg * np.eye(L_sym, dtype=np.complex128)
         b = X.conj().T @ y
-        h = np.linalg.solve(A, b)
+        h_chan = np.linalg.solve(A, b)
 
-        h = np.convolve(h, h_awgn)
+        h = np.convolve(h_awgn, h_chan)
 
-        return h, rx_train_aligned, tx_train_aligned
+        return h_chan, h, rx_sym, tx_sym
 
-    def _plot_estimate(self, h, rx_train_aligned, tx_train_aligned):
+    def _plot_estimate(self, h_chan, h, rx_train_aligned, tx_train_aligned):
         
         y_hat_full = np.convolve(tx_train_aligned, h, mode="full")
         y_hat = y_hat_full[:len(rx_train_aligned)]
-
         title_prefix = f"{self.channel_model} | {self.estimator_method}: "
 
         fig, ax = plt.subplots(2, 1, figsize=(11, 8))
 
         ax[0].stem(np.arange(len(h)), np.abs(h))
-        ax[0].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
+        ax[0].set_title(f'{title_prefix}Compozite channel impulse response |h_est|')
         ax[0].set_xlabel('Tap index')
-        ax[0].set_ylabel('|h_est|')
+        ax[0].set_ylabel('|h|')
         ax[0].grid(True)
 
-        ax[1].plot(np.abs(rx_train_aligned), '-', linewidth=1.3, label='|rx_aligned|')
-        ax[1].plot(np.abs(y_hat), '--', linewidth=2.0, label='|tx_aligned * h_est|')
-        ax[1].set_xlabel('Sample index')
-        ax[1].set_ylabel('Magnitude')
-        ax[1].legend()
+        ax[1].stem(np.arange(len(h_chan)), np.abs(h_chan))
+        ax[1].set_title(f'{title_prefix}Estimated channel impulse response |h_est|')
+        ax[1].set_xlabel('Tap index')
+        ax[1].set_ylabel('|h_est|')
         ax[1].grid(True)
 
         plt.tight_layout()
         plt.show()
 
-    def process(self, rx_signal, tx_signal, channel_state = None):
+    def process(self, rx_signal, tx_signal):
         samples_per_burst = 156 * self.sps
         num_bursts = len(rx_signal) // samples_per_burst
         h_list = []
@@ -190,10 +207,10 @@ class ChannelEstimate():
                 h_est = self.h_awgn()
             elif self.estimator_method == "training":
 
-                h_est, rx_aligned, tx_aligned = self.h_rayleigh(rx_burst, tx_burst)
+                h_chan, h_est, rx_aligned, tx_aligned = self.h_rayleigh(rx_burst, tx_burst)
 
                 if self.PLOT_CHANNEL_ESTIMATE and not self._plot_done and b == 0:
-                    self._plot_estimate(h_est, rx_aligned, tx_aligned)
+                    self._plot_estimate(h_chan, h_est,  rx_aligned, tx_aligned)
                     self._plot_done = True
             else:
                 raise ValueError(

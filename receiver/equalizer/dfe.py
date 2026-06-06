@@ -37,7 +37,9 @@ class DFEEqualizer:
 
     def _build_f_sym(self, h_est):
         h = np.asarray(h_est, dtype=np.complex128)
-        f = np.convolve(h, np.conj(h[::-1]))
+        E_h = np.sum(np.abs(h**2))
+        h_mf = np.conj(h[::-1] / np.sqrt(E_h))
+        f = np.convolve(h, h_mf)
         peak = int(np.argmax(np.abs(f)))
         sps = self.sps
 
