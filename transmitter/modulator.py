@@ -137,4 +137,4 @@ class GMSKModulation:
 
 class PSKModulation:
     def __init__(self, params):
-        raise ValueError("Еще не реализован")
+        pass

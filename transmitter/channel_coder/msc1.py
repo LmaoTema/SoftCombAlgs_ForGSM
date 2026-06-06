@@ -1,6 +1,6 @@
 import numpy as np
 from .encoder import ConvolutionalEncoder
-from .utils import MSC_PARAMS, prepend_last_bits
+from .utils import MSC_PARAMS
 
 
 class MSC1CRC:

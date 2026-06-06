@@ -1,6 +1,6 @@
 import numpy as np
 from .encoder import ConvolutionalEncoder
-from .utils import MSC_PARAMS, prepend_last_bits
+from .utils import MSC_PARAMS
 
 class MSC5CRC:
     def __init__(self, parity_bits):
@@ -23,43 +23,28 @@ class MSC5HeaderCoder:
 
     def process(self, bits):
        
-        bits = self.crc.encode(bits)
-        bits = prepend_last_bits(bits, 6)  
-        coded = self.conv.process(bits[:len(bits)-6])
-        coded = np.append(coded, coded[-1])
-        
-        return coded[:136]
+        bits = self.crc.encode(bits)            # 37 + 8 = 45  
+        coded = self.conv.process(bits)         # 45 * 3 = 135
+        coded = np.append(coded, coded[-1])     # 135 + 1 = 136 
+        return coded
 
 class MCS5DataPuncturer:
-    def __init__(self, mode="P1"):
-        self.mode = mode
-        self.exceptions1 = {47, 371, 695, 1019}
-        self.exceptions2 = {136, 460, 784, 1108}
-
+    def __init__(self):
+        self.exceptions_p1 = {47, 371, 695, 1019}
     def process(self, bits):
         out = []
-        n = len(bits)
-        for i in range(n):
-            remove = False
-            if self.mode == "P1":
-                if (i >= 2 and i <= 2 + 9*153 and (i - 2) % 9 == 0 and i not in self.exceptions1):
-                    remove = True
-                if (i >= 1388 and i <= 1388 + 3*5 and (i - 1388) % 3 == 0 and i not in self.exceptions1):
-                    remove = True
-            else:  # P2
-                if (i >= 1 and i <= 1 + 9*153 and (i - 1) % 9 == 0 and i not in self.exceptions2):
-                    remove = True
-                if (i >= 1387 and i <= 1387 + 3*5 and (i - 1387) % 3 == 0 and i not in self.exceptions2):
-                    remove = True
+        for i, b in enumerate(bits):
+            if (i >= 2 and (i - 2) % 9 == 0 and i <= 2 + 9*153) and i not in self.exceptions_p1:
+                continue
+        
+            if (i >= 1388 and (i - 1388) % 3 == 0 and i <= 1388 + 3*5) and i not in self.exceptions_p1:
+                continue
 
-            if not remove:
-                out.append(bits[i])
-
-        if len(out) < 1248:
-            out += [0] * (1248 - len(out))
-        return out[:1248]
+            out.append(b)
+        return out
+    
 class MSC5DataCoder:
-    def __init__(self, params, cps="P1"):
+    def __init__(self, params):
         self.crc = MSC5CRC(params["data_crc"])
         G = [
             [1,1,1,1,0,1,1],
@@ -67,7 +52,7 @@ class MSC5DataCoder:
             [1,1,0,1,1,0,1]
         ]
         self.conv = ConvolutionalEncoder(G, 7)
-        self.punct = MCS5DataPuncturer(cps)
+        self.punct = MCS5DataPuncturer()
 
     def process(self, bits):
         bits = self.crc.encode(bits)
@@ -77,28 +62,19 @@ class MSC5DataCoder:
         return coded
 
 class MSC5Coding:
-    def __init__(self, scheme, cps="P1"):
+    def __init__(self, scheme):
         if scheme != "MCS5":
             raise ValueError("MSC-5 coder only")
         params = MSC_PARAMS[scheme]
-        self.header_bits = params["header_bits"]
-        self.data_bits = params["data_bits"]
         self.header = MSC5HeaderCoder(params)
-        self.data = MSC5DataCoder(params, cps)
+        self.data = MSC5DataCoder(params)
         self.scheme = scheme
 
     def process(self, bits):
-        header = bits[:self.header_bits]
-        data = bits[self.header_bits:self.header_bits + self.data_bits]
+        header = bits[:37]
+        data = bits[37:]
 
-        h = self.header.process(header)
-        d = self.data.process(data)
-
-        flags = np.zeros(8, dtype=int)  # вместо склейки
-
-        
-        return {
-            "header": h,
-            "data": d,
-            "flags": flags
-        }
+        h = self.header.process(header)     # 136 
+        d = self.data.process(data)         # 1248 
+        frame = np.concatenate([h, d])
+        return frame

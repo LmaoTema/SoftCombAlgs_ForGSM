@@ -148,8 +148,9 @@ class BERRuler:
             }
         if self.channel_type == "MCS5":
             return {
-                "header": bits[0:136],
-                "data": bits[136:1384],
+                "header": bits[:37],
+                "data": bits[37:],
+                "full": bits[:]
             }
         return {"full": bits[:]}
     

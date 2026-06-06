@@ -2,7 +2,7 @@ from core.block import Block
 from receiver.deinterleaver.tch_dein import SpeechDeinterleaver
 from receiver.deinterleaver.cs_dein import CS1Deinterleaver
 from receiver.deinterleaver.mcs1_dein import MCS1Deinterleaver
-
+from receiver.deinterleaver.mcs5_dein import MCS5Deinterleaver
 class Deinterleaver(Block):
 
     def __init__(self, scheme, is_working=False):

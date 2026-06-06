@@ -30,7 +30,3 @@ MSC_PARAMS = {
 
 }
 
-    # func for MSC
-def prepend_last_bits(bits, n):
-    bits = list(bits)
-    return bits[-n:] + bits

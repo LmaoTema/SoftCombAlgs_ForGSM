@@ -9,6 +9,15 @@ class SoftGenerator:
         self.llr_scale = llr_scale
         self.is_working = is_working
         
+
+        if channel_type in ["CS1", "TCHFS", "MCS1"]:
+            self.bits_per_symbol = 1
+        elif channel_type in ["MCS5"]: 
+            self.bits_per_symbol = 3
+        else:
+            raise ValueError(f"Неизвестный channel_type: {channel_type}. "
+                           "Укажите bits_per_symbol вручную или добавьте в маппинг.")
+        
         if channel_type in ["CS1", "TCHFS", "MCS1"]:
             if channel_model == "awgn":  
                 dataset_path = Path(__file__).resolve().parent / "soft_data" / "gsm_omni_sector_pdtch_cs1_awgn.json"
@@ -37,62 +46,61 @@ class SoftGenerator:
                     
         with open(dataset_path, "r") as f:
             data = json.load(f)
-            
+
         data = sorted(data, key=lambda x: x["rssi"])
-        # в случае АБГШ обрезаем до 10 первых точек
-        
-        data = data[:20]
-            
-        ref_rssi = -115.0
+        data = data[:20]  
+
+        ref_rssi = -119.0
         self.rssi_db = np.array([d["rssi"] for d in data]) + ref_rssi
-        
-        self.mean = np.array([d["raw_llr_mean_abs"][0] for d in data])
-        self.std  = np.array([d["raw_llr_std"][0]  for d in data])
-        self.minv = np.array([d["raw_llr_min"][0]  for d in data])
-        self.maxv = np.array([d["raw_llr_max"][0]  for d in data])
-        self.uncoded_ber = np.array([d["uncoded_ber"] for d in data])
+
+
+        self.mean_abs = np.array([d["raw_llr_mean_abs"] for d in data])      # (N_points, bits_per_symbol)
+        self.std      = np.array([d["raw_llr_std"]      for d in data])
+        self.minv     = np.array([d["raw_llr_min"]      for d in data])
+        self.maxv     = np.array([d["raw_llr_max"]      for d in data])
+        self.uncoded_ber = np.array([d["uncoded_ber"]   for d in data])     # UB только одна
+
+        if self.mean_abs.shape[1] != self.bits_per_symbol:
+            raise ValueError(f"Несоответствие bits_per_symbol={self.bits_per_symbol} "
+                           f"и данных в JSON ({self.mean_abs.shape[1]})")
 
     def get_uncoded_ber(self, rssi_list):
-        return self.uncoded_ber[rssi_list]
+        return self.uncoded_ber[np.asarray(rssi_list).astype(int)]
 
     def get_soft_decisions(self, bits, rssi_list, num_sectors=2):
-
-        bits = np.asarray(bits, dtype=np.int8)
+        bits = np.asarray(bits, dtype=np.int8).flatten()
         if bits.ndim != 1:
             raise ValueError("bits должен быть одномерным массивом")
 
-        soft_list = []  
+        soft_list = []
 
         for rssi in np.asarray(rssi_list).flatten():
             sector_results = []
-            
             for _ in range(num_sectors):
                 result = self._generate_one_sector(bits, rssi)
                 sector_results.append(result)
-            
             soft_list.append(sector_results)
-            
+
         return soft_list
 
-    def _generate_one_sector(self, bits, rssi):
-        
+    def _generate_one_sector(self, bits, rssi_idx):
         N = len(bits)
-        idx = rssi
-        
-        # mu = self.mean[idx]
-        sigma = self.std[idx]
-        minv_val = self.minv[idx]
-        maxv_val = self.maxv[idx]
+        idx = int(rssi_idx)
 
-        q_inv = norm.ppf(1 - self.uncoded_ber[idx])
-        m = q_inv * sigma 
-        llr_mean = m * (1 - 2*bits)
-        llr = np.random.normal(loc=llr_mean, scale=sigma, size=N)
+        sigma     = self.std[idx]          #  (bits_per_symbol,)
+        minv_val  = self.minv[idx]
+        maxv_val  = self.maxv[idx]
+        ber       = self.uncoded_ber[idx]
+
+        q_inv = norm.ppf(1 - ber)
         
-        llr = np.clip(llr, minv_val, maxv_val)
+        bit_pos = np.arange(N) % self.bits_per_symbol
+        
+        m = q_inv * sigma[bit_pos]                    
+        llr_mean = m * (1 - 2 * bits)               
+
+        llr = np.random.normal(loc=llr_mean, scale=sigma[bit_pos], size=N)
+        llr = np.clip(llr, minv_val[bit_pos], maxv_val[bit_pos])
         llr = (np.clip(llr / self.llr_scale, -1.0, 1.0) * 127.0).astype(np.int8)
-        # abs_llr = np.abs(llr)
-        # mean_abs_llr = np.mean(abs_llr)
-        # print(llr_mean)
-        # print(mean_abs_llr)        
+        
         return llr
