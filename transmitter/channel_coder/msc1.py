@@ -1,14 +1,15 @@
 import numpy as np
 from .encoder import ConvolutionalEncoder
 from .utils import MSC_PARAMS
-
+import random
 
 class MSC1CRC:
     def __init__(self, parity_bits):
         self.parity_bits = parity_bits
 
     def encode(self, bits):
-        return bits + [0] * self.parity_bits
+        parity = [random.randint(0, 1) for _ in range(self.parity_bits)]
+        return bits + parity
 
 
 class HeaderPuncturer:

@@ -1,17 +1,12 @@
 from .encoder import ConvolutionalEncoder
+import random
 
 class CRC5350:
     def __init__(self):
-        self.poly = [1,0,1,1]  # x^3 + x + 1
+        self.parity_bits = 3
 
     def encode(self, bits):
-        reg = bits + [0,0,0]
-        poly = self.poly
-        for i in range(len(bits)):
-            if reg[i] == 1:
-                for j in range(len(poly)):
-                    reg[i+j] ^= poly[j]
-        parity = reg[-3:]
+        parity = [random.randint(0, 1) for _ in range(self.parity_bits)]
         return bits + parity  # 50 bits + 3 parity bits
 
 
