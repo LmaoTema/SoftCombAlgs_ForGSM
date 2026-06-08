@@ -9,6 +9,7 @@ class GMSKDetector:
         self.gaus_duration = params.get("gaus_duration", 4)
         self.rect_duration = params.get("rect_duration", 1)
         self.type_demod = params.get("type_demod", "diff_phase") # diff_phase / vit_hard / vit_soft 
+        self.llr_scale = params.get("llr_scale", 40) 
 
         self.mf_is_working = block_params["matched_filter"]["is_working"]
 
@@ -111,7 +112,7 @@ class GMSKDetector:
         return best_stop_state
     
     @staticmethod
-    def calc_llr(total_symbols, hard_bits, survivor_states, trans_table, state_transfer, ebn0):
+    def calc_llr(total_symbols, hard_bits, survivor_states, trans_table, state_transfer, ebn0, llr_scale):
 
         # Задержка принятия решения
         decision_delay = 16
@@ -169,7 +170,6 @@ class GMSKDetector:
                 raw_llr[i] = - L[i]
 
         # Проецирование на сетку
-        llr_scale = 50 # Учитывая, что на 8 дБ (BER = 0.1) среднее 30.
         llr = (np.clip(raw_llr / llr_scale, -1.0, 1.0) * 127.0).astype(np.int8)
 
         return llr
@@ -217,7 +217,7 @@ class GMSKDetector:
                 current_state = state_transfer[current_state][0]
 
         if self.type_demod == "vit_soft": 
-            llr = self.calc_llr(total_symbols, hard_bits, survivor_states, trans_table, state_transfer, ebn0)        
+            llr = self.calc_llr(total_symbols, hard_bits, survivor_states, trans_table, state_transfer, ebn0, self.llr_scale)        
         else:
             llr = np.zeros(total_symbols, dtype=float)
 

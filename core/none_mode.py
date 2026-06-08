@@ -37,7 +37,7 @@ class NonePipeline(BasePipeline):
 
         # Приемник
         rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
-        h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
+        h = self.estimator.process(rx_signal, tx_signal)
         mf = self.matched_filter.process(rx_signal, h)
 
         eq_out = self.equalizer.process(mf, h)
