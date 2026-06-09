@@ -8,9 +8,8 @@ class MSC5CRC:
         self.parity_bits = parity_bits
 
     def encode(self, bits):
-        parity = [random.randint(0, 1) for _ in range(self.parity_bits)] 
-        return bits + parity
-
+        return bits + [0] * self.parity_bits
+    
 class MSC5HeaderCoder:
     def __init__(self, params):
         self.crc = MSC5CRC(params["header_crc"])
