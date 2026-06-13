@@ -2,8 +2,9 @@ import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
-    "channel_type":     "CS1",
+    "channel_type":     "TCHFS",
     "channel_model":    "rayleigh_multipath",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_profile":  "TU",                   # TU / RA / HT
     "estimator_method": "training",             # "analytical" / "training"
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode":  "none",                 # "none"/ "half" / "full"    
@@ -21,52 +22,46 @@ block_params = {
 }
 
 BER = {
-    "h2dB_init": 0,
-    "h2dB_init_step": 0.4,
-    "h2dB_min_step": 0.1,
-    "h2dB_max_step": 1.6,
-    "h2dB_max": 20.0,
-    
-    "prx_dbm_init": -108.0,
+    "prx_dbm_init": -118.0,
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 1.0,
-    "prx_dbm_max": -102.0,
+    "prx_dbm_max": -60.0,
 
-    "min_BER": 1e-4,
-    "min_FER": 1,
+    "min_BER": 1,
+    "min_FER": 1e-4,
     
-    "min_NumErBits": 500,
-    "min_NumErFrames": 1000,
-    "min_NumTrFrames": 1000,
+    "min_NumErBits": 1,
+    "min_NumErFrames": 60,
+    "min_NumTrFrames": 1000 * 3,
     
-    "max_NumTrBits": 5e6,
-    "max_NumTrFrames": 2000,
+    "max_NumTrBits": np.inf,
+    "max_NumTrFrames": 1e7 * 3,
     
     "max_BERRate": 5,
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": True
+    "stop_by_min_BER": False
 }
 
 mode_params = {
-    # "TCHFS": {
-    #     "scheme": "TCHFS",
-    #     "frame_bits": 260
-    # },
+    "TCHFS": {
+        "scheme": "TCHFS",
+        "frame_bits": 260
+    },
    "CS1": {
        "scheme": "CS1",
        "frame_bits": 184
     },
-    #"MCS1": {
-    #    "scheme": "MCS1",
-     #   "frame_bits": MSC_PARAMS["MCS1"]["header_bits"] + MSC_PARAMS["MCS1"]["data_bits"]
-    #},
-    #"MCS5": {
-     #   "scheme": "MCS5",
-     #   "frame_bits": MSC_PARAMS["MCS5"]["header_bits"] + MSC_PARAMS["MCS5"]["data_bits"]
-    #}
+    "MCS1": {
+       "scheme": "MCS1",
+       "frame_bits": MSC_PARAMS["MCS1"]["header_bits"] + MSC_PARAMS["MCS1"]["data_bits"]
+    },
+    "MCS5": {
+       "scheme": "MCS5",
+       "frame_bits": MSC_PARAMS["MCS5"]["header_bits"] + MSC_PARAMS["MCS5"]["data_bits"]
+    }
 }
 
 modulation_params = {
@@ -126,7 +121,7 @@ channel_params = {
     "bits_per_symbol": link_budget_params["bits_per_symbol"],
     "coding_rate": link_budget_params["coding_rate"],
   
-    "profile": "TU",        # TU / RA / HT
+    "profile": simulation_params["channel_profile"],        # TU / RA / HT
     "sample_rate": DERIVED_SAMPLE_RATE_HZ,
     "doppler": 100,
 }

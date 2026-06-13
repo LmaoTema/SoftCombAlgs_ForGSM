@@ -11,7 +11,8 @@ from receiver.detector.det_manager import Detector
 
 from channel.channel_manager import ChannelBlock
 
-from receiver.estimator import ChannelEstimate
+# from receiver.estimator import ChannelEstimate
+from receiver.new_estimator import ChannelEstimate
 from receiver.matched_filter import MatchedFilter
 from receiver.equalizer.equalizer_manager import Equalizer
 from receiver.decoder.dec_manager import ChannelDecoder
