@@ -77,9 +77,11 @@ class ChannelChain:
         return normalized_signal, measured_power_watt, normalization_gain, normalized_power_watt
 
     def process(self, x, *, signal_power_dbm = None, axis_metric = "dbm"):
+        if self.noise_channel is None:
+            raise ValueError("noise_channel must exist for the power-based AWGN model.")
         x_complex = np.asarray(x, dtype = np.complex128)
         y = x_complex
-        pre_fading_input_power_watt = float(np.mean(np.abs(x_complex) ** 2)) if len(x_complex) else 0.0 # cчитается мощность входного сигнала до физического тракта
+        pre_fading_input_power_watt = float(np.mean(np.abs(x_complex) ** 2)) if len(x_complex) else 0.0
         channel_state = None
         pre_small_scale_reference_power_watt = None
         pre_small_scale_reference_power_dbm = None
@@ -117,9 +119,6 @@ class ChannelChain:
 
         pre_small_scale_reference_power_dbm = self.noise_channel.watt_to_dbm(pre_small_scale_reference_power_watt)
         post_fading_power_dbm = self.noise_channel.watt_to_dbm(post_fading_power_watt)
-
-        if self.noise_channel is None:
-            raise ValueError("noise_channel must exist for the power-based AWGN model.")
 
         y_physical, noise_power_watt = self.noise_channel.process(y)
         post_awgn_power_watt = float(np.mean(np.abs(y_physical) ** 2)) if len(y_physical) else 0.0
@@ -200,10 +199,10 @@ class ChannelChain:
             noise_power_watt = noise_power_watt,
             noise_power_dbm = noise_power_dbm,
             noise_variance_per_sample = noise_variance_per_sample,
-            applied_signal_power_watt = post_fading_power_watt,
-            applied_signal_power_dbm = post_fading_power_dbm,
-            measured_signal_power_watt = post_fading_power_watt,
-            measured_signal_power_dbm = post_fading_power_dbm,
+            applied_signal_power_watt = pre_small_scale_reference_power_watt,
+            applied_signal_power_dbm = pre_small_scale_reference_power_dbm,
+            measured_signal_power_watt = pre_small_scale_reference_power_watt,
+            measured_signal_power_dbm = pre_small_scale_reference_power_dbm,
             measured_output_power_watt = measured_output_power_watt,
             measured_output_power_dbm = measured_output_power_dbm,
             normalized_signal_power_watt = normalized_signal_power_watt,
@@ -295,6 +294,18 @@ class ChannelBlock(Block):
             outage_threshold_db = channel_params.get("outage_threshold_db", None),
         )
 
+    def process(self, tx_signal):
+        if not self.is_working:
+            x = np.asarray(tx_signal, dtype=np.complex128)
+            state = ChannelState(
+                kind="bypass",
+                impulse_response=np.array([1.0 + 0.0j]),
+                average_channel_power=1.0,
+                metadata={"channel_model": "bypass", "fading_mode": "NONE"},
+            )
+            return ChannelOutput(signal=x, channel_state=state)
+        return self._process(tx_signal)
+
     def _channel_noise_params(self):
         nested_noise = channel_params.get("noise", {})
         return {
@@ -335,15 +346,35 @@ class ChannelBlock(Block):
         else:
             doppler_override = channel_params.get("doppler_spectrum", None)
 
+        fs = nested_fading.get("sample_rate", channel_params.get("sample_rate", 1e6))
+
+        sps = channel_params.get("samples_per_symbol", 1.0)
+        burst_symbols = nested_fading.get(
+            "interleave_burst_symbols", channel_params.get("interleave_burst_symbols", None)
+        )
+        tdma_period_s = nested_fading.get(
+            "tdma_burst_period_s", channel_params.get("tdma_burst_period_s", None)
+        )
+        interleave_burst_samples = None
+        interleave_gap_samples = None
+        if burst_symbols and tdma_period_s:
+            interleave_burst_samples = int(round(float(burst_symbols) * float(sps)))
+            interleave_gap_samples = max(
+                0, int(round(float(tdma_period_s) * float(fs))) - interleave_burst_samples
+            )
+
         return {
-            "sample_rate": nested_fading.get("sample_rate", channel_params.get("sample_rate", 1e6)),
+            "sample_rate": fs,
             "maximum_doppler_shift": nested_fading.get("doppler", channel_params.get("doppler", 0.0)),
             "profile": nested_fading.get("profile", self.profile),
             "doppler_spectrum": nested_fading.get("doppler_spectrum", channel_params.get("doppler_spectrum", "CLARKE")),
             "doppler_spectrum_override": doppler_override,
             "n_sinusoids": nested_fading.get("n_sinusoids", 64),
+            "clarke_backend": nested_fading.get("clarke_backend", channel_params.get("clarke_backend", "JAKES")),
             "seed": nested_fading.get("seed", None),
-            "filter_length": nested_fading.get("filter_length", 21),
+            "filter_length": nested_fading.get("filter_length", 61),
+            "interleave_burst_samples": interleave_burst_samples,
+            "interleave_gap_samples": interleave_gap_samples,
         }
 
     def _build_noise_channel(self):
@@ -364,6 +395,7 @@ class ChannelBlock(Block):
                 sample_rate = params["sample_rate"],
                 doppler_spectrum = params["doppler_spectrum"],
                 n_sinusoids = params["n_sinusoids"],
+                clarke_backend = params["clarke_backend"],
                 seed = params["seed"],
             )
 
@@ -374,6 +406,7 @@ class ChannelBlock(Block):
                 maximum_doppler_shift = params["maximum_doppler_shift"],
                 filter_length = params["filter_length"],
                 n_sinusoids = params["n_sinusoids"],
+                clarke_backend = params["clarke_backend"],
                 seed = params["seed"],
                 doppler_spectrum_override = params["doppler_spectrum_override"],
             )

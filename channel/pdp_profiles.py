@@ -1,7 +1,13 @@
 import numpy as np
 
 
-def _profile(name, delays_us, powers_db, doppler_types):
+
+def _profile(
+    name,
+    delays_us,
+    powers_db,
+    doppler_types,
+):
     delays_us = np.asarray(delays_us, dtype = float)
     powers_db = np.asarray(powers_db, dtype = float)
 
@@ -9,12 +15,15 @@ def _profile(name, delays_us, powers_db, doppler_types):
         raise ValueError(f"{name}: delays_us and powers_db must have same length")
     if len(doppler_types) != len(delays_us):
         raise ValueError(f"{name}: doppler_types length mismatch")
+
     return {
         "name": name,
         "delays_s": delays_us * 1e-6,
         "powers_db": powers_db,
         "doppler_types": list(doppler_types),
     }
+
+
 # Typical Urban
 TU = _profile(
     "Typical Urban",
