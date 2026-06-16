@@ -5,7 +5,7 @@ simulation_params = {
     "channel_type":     "TCHFS",
     "channel_model":    "rayleigh_multipath",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "channel_profile":  "TU",                   # TU / RA / HT
-    "estimator_method": "training",             # "analytical" / "training"
+    "estimator_method": "training",             # "analytical" / "training"/ "composite_derot"
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode":  "none",                 # "none"/ "half" / "full"    
     "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
