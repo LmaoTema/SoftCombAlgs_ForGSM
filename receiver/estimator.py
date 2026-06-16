@@ -17,7 +17,7 @@ PROFILE_TO_CHANNEL_LEN_SYM = {
 
 class ChannelEstimate():
 
-    PLOT_CHANNEL_ESTIMATE = True
+    PLOT_CHANNEL_ESTIMATE = False
 
     DEFAULTS = {
         "est_channel_len_sym":   None,  # None -> подбирается по channel_profile
