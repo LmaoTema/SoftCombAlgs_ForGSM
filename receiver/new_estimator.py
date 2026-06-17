@@ -16,7 +16,6 @@ class ChannelEstimate():
         self.channel_model = simulation_params.get("channel_model", "awgn")
         self.channel_profile = simulation_params.get("channel_profile", "TU")
         self.estimator_method = simulation_params.get("estimator_method", "training")
-        self.estimator_reg = 1e-4
     
     # Аналитическая h(t) композитного фильтра (передатчик + канал)
     def h_awgn(self):
@@ -64,28 +63,41 @@ class ChannelEstimate():
         h = c_0_trunc[::oversampling]
 
         return h
-    
-    def h_rayleigh(self, rx_burst, tx_burst):
-        sps = self.sps
-        train_bit_start = 61
-        train_bit_end = 87
-
-        # запас по памяти сигнала для учёта МСИ
-        mem_bits = self.L - 1
-        # перевод границ из бит в отсчёты с расширением окна
-        train_start = (train_bit_start - mem_bits) * sps
-        train_end = (train_bit_end + mem_bits) * sps
         
-        # выделение участка тренировочной последовательности 
-        rx_train = np.asarray(rx_burst[train_start:train_end], dtype=np.complex128)
-        tx_train = np.asarray(tx_burst[train_start:train_end], dtype=np.complex128)
+    def h_rayleigh(self, rx_burst, tx_burst):
+        sps = self.sps        
+        # Определяем начало и конец TSC
+        train_start = (61) * sps
+        train_end = (87) * sps
 
-        # Длина ИХ канала (или сразу берестся для композитного канала?) (в отсчетах)
+        # Выделяем последовательности
+        tx_train = tx_burst[train_start:train_end]
+        rx_train = rx_burst[train_start:train_end]
+
+        # Синхронизируемся на центр TSC (По идее должны остаться там же, так как у нас идеальная синхронизация, но Василий сказал сделать)
+        corr_train = np.convolve(tx_train, np.conj(rx_train[::-1]))
+        peak_idx = np.argmax(np.abs(corr_train))
+
+        # Разворачиваем фазу сигнала обратно
+        phase_correction = np.conj(corr_train[peak_idx]) / np.abs(corr_train[peak_idx])
+        rx_burst_aligned = (rx_burst * phase_correction)
+
+        # Сдвигаем сигнал к макисмуму в 3 остчет
+        shift = 103 - peak_idx
+        zeros = np.zeros(np.abs(shift), dtype=complex)
+        if shift > 0:
+            rx_burst_aligned_shift = np.concatenate((zeros, rx_burst_aligned[:-shift]))
+        elif shift < 0:
+            rx_burst_aligned_shift = np.concatenate((rx_burst_aligned[np.abs(shift):],zeros))
+        else:
+            rx_burst_aligned_shift = rx_burst_aligned
+
+        # Длина ИХ канала (в отсчетах)
         if self.channel_model == "awgn":
-            L_sample = 1
+            h_len = 1
         else:
             if self.channel_profile == "TU":
-                L_sample = 2 * sps
+                h_len = 2 * sps
             elif self.channel_profile == "RA":
                 raise ValueError("Оценка Андрюхи пока что толкьо для TU")
             elif self.channel_profile == "HT":
@@ -93,46 +105,49 @@ class ChannelEstimate():
             else:
                 raise ValueError("Оценка Андрюхи пока что толкьо для TU")
 
-        # Длина тренировочной последовательности (в отсчетах)
-        N = len(rx_train)
-        # Сдвиг в тренировочной последовательности на длину ИХ композитного канала
-        rows = N - L_sample + 1 # количество строк в матрице
-        X = np.zeros((rows, L_sample), dtype=np.complex128)
+        # Задаем основные переменные
+        start_train_idx = 3 * sps 
+        train_len = 26 * sps
+        num_rows = train_len - h_len - start_train_idx + 1
 
-        for i in range(rows):
-            seg = tx_train[i:i + L_sample] # выделение окна в tx_train длиной L_sps
-            X[i, :] = seg[::-1] # переворот окна для свертки
+        # Выерзаем из тренировочных бит сдвинутого сигнала используемые в матрице отсчеты
+        rx_train_aligned = rx_burst_aligned_shift[train_start : train_end]
+        rx_train_cut = rx_train_aligned[h_len + start_train_idx - 1 :]
 
-        y = rx_train[L_sample - 1:] 
+        # Определим матрицу свертки
+        conv_matrix = np.zeros((num_rows, h_len), dtype=complex)
+        for i in range(num_rows):
+            row = tx_train[start_train_idx + i : h_len + start_train_idx + i]
+            conv_matrix[i, :] = row[::-1]
 
-        # Матрично находим коэффициенты канала
-        reg = self.estimator_reg
-        A = X.conj().T @ X + reg * np.eye(L_sample, dtype=np.complex128)
-        b = X.conj().T @ y
-        h_chan = np.linalg.solve(A, b)
+        # Ищем коэффициенты канала по формуле
+        inv_abs_matrix = np.linalg.inv(conv_matrix.conj().T @ conv_matrix)
+        h_chan = inv_abs_matrix @ conv_matrix.conj().T @ rx_train_cut
 
+        # Получаем коэффициенты композитного канала
         h_awgn = self.h_awgn()
-
         h = np.convolve(h_awgn, h_chan)
 
-        # Ищем окно L = 5 с максимальной энергией
+        # Берем из h окно длиной 5 символов с максимальной энергией
+        len_window = 5
         start_idx_max_energy = 0
         max_energy = 0
-        for i in range(len(h) - self.L * sps + 1):
-            window = h[i : i + self.L * sps]
+        for i in range(len(h) - len_window * sps + 1):
+            window = h[i : i + len_window * sps]
             E = np.sum(np.abs(window)**2)
             if E > max_energy:
                 max_energy = E
                 start_idx_max_energy = i
 
-        h_truncated = h[start_idx_max_energy : start_idx_max_energy + self.L * sps]
+        h_truncated = h[start_idx_max_energy : start_idx_max_energy + 5 * sps]
 
-        return h_truncated
+        return rx_burst_aligned_shift, h_truncated
 
     def process(self, rx_signal, tx_signal):
         samples_per_burst = 156 * self.sps
         num_bursts = len(rx_signal) // samples_per_burst
         h_list = []
+        rx_burst_aligned_all = []
 
         for b in range(num_bursts):
             start_idx = b * samples_per_burst
@@ -143,9 +158,11 @@ class ChannelEstimate():
 
             if self.estimator_method == "analytical":
                 h_est = self.h_awgn()
+                rx_burst_aligned = rx_signal
             elif self.estimator_method == "training":
-                h_est = self.h_rayleigh(rx_burst, tx_burst)
+                rx_burst_aligned, h_est  = self.h_rayleigh(rx_burst, tx_burst)
 
             h_list.append(h_est)
+            rx_burst_aligned_all.append(rx_burst_aligned)
 
-        return h_list
+        return np.concatenate(rx_burst_aligned_all), h_list
