@@ -44,21 +44,27 @@ def build_pipeline(mode, channel_type, mode_cfg):
 
     soft_llr_generator = SoftGenerator(simulation_params["channel_type"], simulation_params["channel_model"], profile=channel_params.get("profile", "TU"), is_working=True)
 
-    
+    delta = simulation_params.get("power_delta_db", 0.0)
 
     if combining_method == "ACS":
         combiner = None
     else:
         combiner = CombManager(method=combining_method)
     
-    channel = ChannelBlock(
+    channel1 = ChannelBlock(
         channel_model = simulation_params["channel_model"], 
         profile = channel_params.get("profile", "TU"),
-        is_working = block_params["channel"]["is_working"],
+        is_working = block_params["channel"]["is_working"], power_offset_db = 0.0,
+    )
+    
+    channel2 = ChannelBlock(
+        channel_model = simulation_params["channel_model"], 
+        profile = channel_params.get("profile", "TU"),
+        is_working = block_params["channel"]["is_working"], power_offset_db = delta,
     )
 
     return create_pipeline(mode=mode,encoder=encoder, interleaver=interleaver,modulator=modulator,
-        channel = channel, estimator=estimator, matched_filter=matched_filter, equalizer=equalizer,
+        channel1 = channel1, channel2 = channel2, estimator=estimator, matched_filter=matched_filter, equalizer=equalizer,
         detector=detector, deinterleaver=deinterleaver, decoder=decoder, soft_llr_generator=soft_llr_generator, combiner=combiner)
 
 def main():
@@ -104,7 +110,7 @@ def main():
     res_uncoded = ber_ruler_uncoded.get_results()
     
     # передаём результирующие параметры для сохранения
-    save_ber_results(res_coded, res_uncoded,simulation_params)
+    save_ber_results(res_coded, res_uncoded, simulation_params)
     # plot_ber(res_coded["x"], res_coded["results"], uncoded_results=res_uncoded["results"], channel_type=channel_type, axis_metric=axis_metric,)
 
     return (

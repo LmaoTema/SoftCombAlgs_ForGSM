@@ -4,7 +4,8 @@ import numpy as np
 class FullPipeline(BasePipeline):
 
     def prepare_point(self, x_value, ber_ruler=None):
-        self.channel.set_signal_power(x_value)
+        self.channel1.prepare_point(x_value, ber_ruler)
+        self.channel2.prepare_point(x_value, ber_ruler)
         
     def update_stats(self, ber_ruler, ber_ruler_uncoded, result, bits):
         # Coded BER
@@ -24,7 +25,7 @@ class FullPipeline(BasePipeline):
     def rx_detector(self, rx_output, tx_signal, ebn0_val):
 
         rx_signal, channel_state, _ = self._unwrap_channel_output(rx_output)
-        h = self.estimator.process(rx_signal, tx_signal, channel_state=channel_state)
+        h = self.estimator.process(rx_signal, tx_signal)
         mf = self.matched_filter.process(rx_signal, h)
         eq = self.equalizer.process(mf, h)
         detected_bits, llr = self.detector.process(eq, h, ebn0_val)
@@ -40,13 +41,14 @@ class FullPipeline(BasePipeline):
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
         # Первый канал
-        rx_output_1 = self.channel.process(tx_signal)
-        ebn0_val = getattr(rx_output_1, 'ebn0_db', 0)
-        detected_bits_1, llr_1 = self.rx_detector(rx_output_1, tx_signal, ebn0_val)
+        rx_output_1 = self.channel1.process(tx_signal)
+        ebn0_val1 = getattr(rx_output_1, 'ebn0_db', 0)
+        detected_bits_1, llr_1 = self.rx_detector(rx_output_1, tx_signal, ebn0_val1)
 
         # Второй канал (иммитируем приём для второго сектора)
-        rx_output_2 = self.channel.process(tx_signal)
-        detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal, ebn0_val)
+        rx_output_2 = self.channel2.process(tx_signal)
+        ebn0_val2 = getattr(rx_output_2, 'ebn0_db', 0)
+        detected_bits_2, llr_2 = self.rx_detector(rx_output_2, tx_signal, ebn0_val2)
 
         sector_soft_list = [llr_1 , llr_2]
         # Делаем деперемежение для каждого набора данных отдельно 

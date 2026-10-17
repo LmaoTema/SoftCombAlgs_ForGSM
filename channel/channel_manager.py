@@ -263,6 +263,7 @@ class ChannelBlock(Block):
         signal_power: float = None,
         profile: str = None,
         is_working: bool = True,
+        power_offset_db: float = 0.0, 
     ):
 
         super().__init__(is_working)
@@ -286,6 +287,7 @@ class ChannelBlock(Block):
         self.fading_channel = self._build_fading_channel(channel_model)
         self.noise_channel = self._build_noise_channel()
         self.large_scale_channel = self._build_large_scale_channel()
+        self.power_offset_db = power_offset_db
         self.chain = ChannelChain(
             fading_channel = self.fading_channel,
             noise_channel = self.noise_channel,
@@ -306,6 +308,10 @@ class ChannelBlock(Block):
             return ChannelOutput(signal=x, channel_state=state)
         return self._process(tx_signal)
 
+    def prepare_point(self, x_value, ber_ruler=None):
+        effective_power = float(x_value) + self.power_offset_db
+        self.set_signal_power(effective_power)    
+       
     def _channel_noise_params(self):
         nested_noise = channel_params.get("noise", {})
         return {

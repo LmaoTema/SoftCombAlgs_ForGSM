@@ -6,7 +6,7 @@ class NonePipeline(BasePipeline):
 
     def prepare_point(self, x_value, ber_ruler=None):
 
-        self.channel.set_signal_power(x_value)
+        self.channel1.set_signal_power(x_value)
         
     def update_stats(self, ber_ruler, ber_ruler_uncoded, result, bits):
         # Coded BER
@@ -32,7 +32,7 @@ class NonePipeline(BasePipeline):
         tx_bits = interleaved_bits.reshape(-1, 156)[:, :148].reshape(-1)
 
         # Канал
-        rx_output = self.channel.process(tx_signal)
+        rx_output = self.channel1.process(tx_signal)
         ebn0_val = getattr(rx_output, 'ebn0_db', 0)
 
         # Приемник

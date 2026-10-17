@@ -8,7 +8,8 @@ class BasePipeline:
         encoder,
         interleaver,
         modulator,
-        channel,
+        channel1,
+        channel2,
         estimator,
         matched_filter,
         equalizer,
@@ -18,13 +19,12 @@ class BasePipeline:
         soft_llr_generator,
         combiner
     ):
-
         self.encoder = encoder
         self.interleaver = interleaver
         self.modulator = modulator
 
-        self.channel = channel
-
+        self.channel1 = channel1
+        self.channel2 = channel2    
         self.estimator = estimator
         self.matched_filter = matched_filter
         self.equalizer = equalizer

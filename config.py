@@ -2,14 +2,15 @@ import numpy as np
 from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
-    "channel_type":     "TCHFS",
-    "channel_model":    "rayleigh_multipath",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_type":     "CS1",
+    "channel_model":    "awgn",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "channel_profile":  "TU",                   # TU / RA / HT
     "estimator_method": "training",             # "analytical" / "training"/ "composite_derot"
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
     "processing_mode":  "none",                 # "none"/ "half" / "full"    
-    "combining_method": "SC",                   # "PDMRC" / "SC" / "ACS"
-    "file_name":        "something",    
+    "combining_method": "PDMRC",                   # "PDMRC" / "SC" / "ACS"
+    "file_name":        "half_MCS5_rayleigh_multipath_TU_no_combining",
+    "power_delta_db":      0.0,
 }
 
 block_params = {
@@ -18,31 +19,31 @@ block_params = {
     "modulation":     {"is_working": True},
     "channel":        {"is_working": True},
     "matched_filter": {"is_working": True},
-    "equalizer":      {"is_working": True},
+    "equalizer":      {"is_working": False},
 }
 
 BER = {
-    "prx_dbm_init": -118.0,
+    "prx_dbm_init": -119.0,
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 1.0,
-    "prx_dbm_max": -60.0,
+    "prx_dbm_max": -100.0,
 
-    "min_BER": 1,
-    "min_FER": 1e-4,
+    "min_BER": 1e-3,
+    "min_FER": 1,
     
-    "min_NumErBits": 1,
-    "min_NumErFrames": 60,
-    "min_NumTrFrames": 1000 * 3,
+    "min_NumErBits": 50,
+    "min_NumErFrames": 500,
+    "min_NumTrFrames": 1000,
     
     "max_NumTrBits": np.inf,
-    "max_NumTrFrames": 1e7 * 3,
+    "max_NumTrFrames": 2000,
     
     "max_BERRate": 5,
     "min_BERRate": 2,
     "log_language": "Russian",
     
-    "stop_by_min_BER": False
+    "stop_by_min_BER": True
 }
 
 mode_params = {
@@ -123,6 +124,6 @@ channel_params = {
   
     "profile": simulation_params["channel_profile"],        # TU / RA / HT
     "sample_rate": DERIVED_SAMPLE_RATE_HZ,
-    "doppler": 100,
+    "doppler": 50,
 }
 

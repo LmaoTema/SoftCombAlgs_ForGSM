@@ -21,7 +21,8 @@ class HalfBERRuler:
         self.MinNumTrFrames = kwargs.get("min_NumTrFrames", 10000)
         self.MaxNumTrBits = kwargs.get("max_NumTrBits", 5e6)
         self.MinNumErFrames = kwargs.get("min_NumErFrames", 500)
-
+        self.MaxNumTrFrames = kwargs.get("max_NumTrFrames", 500)
+        self.prx_dbm_max = kwargs.get("prx_dbm_max", -90.0)
         self.x_values = []
 
 
@@ -44,6 +45,13 @@ class HalfBERRuler:
             for name in tmp_blocks
         }
 
+        self.channel_metrics = {
+            "ci_db": []
+        }
+        
+        self._channel_metric_accumulator = {
+            "ci_db": [],
+        }
         self.current_uncoded_ber = None
         self._reset_accumulators()
 
@@ -79,7 +87,7 @@ class HalfBERRuler:
         idx = min(self.point_index, len(self.rssi_points) - 1)
         return float(self.rssi_points[idx])
 
-    def update_frame(self, tx_bits, rx_bits, uncoded_ber=None):
+    def update_frame(self, tx_bits, rx_bits, uncoded_ber=None, channel_output=None):
         tx_blocks = self._slice_blocks(tx_bits)
         rx_blocks = self._slice_blocks(rx_bits)
 
@@ -98,17 +106,38 @@ class HalfBERRuler:
 
         if uncoded_ber is not None:
             self.current_uncoded_ber = uncoded_ber
-
+            
+        if channel_output is not None:
+            self._channel_metric_accumulator["ci_db"].append(float(channel_output))
+    
+    
+    def _append_channel_metric(self, key, default=None):
+        values = self._channel_metric_accumulator.get(key, [])
+        if not values:
+            self.channel_metrics[key].append(default)
+            return
+        
+        if key == "ci_db":
+            self.channel_metrics[key].append(float(np.mean(values)))
+        else:
+            self.channel_metrics[key].append(float(np.mean(values)))
+    
     def is_point_finished(self):
+        total_tr_bits = sum(s["NumTrBits"] for s in self.stats.values())
         total_er_bits = sum(s["NumErBits"] for s in self.stats.values())
         total_tr_frames = sum(s["NumTrFrames"] for s in self.stats.values())
-        total_tr_bits = sum(s["NumTrBits"] for s in self.stats.values())
+        total_er_frames = sum(s["NumErFrames"] for s in self.stats.values())
 
-        enough_errors = total_er_bits >= self.MinNumErBits
-        enough_frames = total_tr_frames >= self.MinNumTrFrames
-        max_bits = total_tr_bits >= self.MaxNumTrBits
-
-        return enough_errors or enough_frames or max_bits
+        enough_statistics = (
+            total_er_bits >= self.MinNumErBits
+            and total_er_frames >= self.MinNumErFrames
+            and total_tr_frames >= self.MinNumTrFrames
+        )
+        complexity_exceeded = (
+            total_tr_bits >= self.MaxNumTrBits
+            or total_tr_frames >= self.MaxNumTrFrames
+        )
+        return enough_statistics or complexity_exceeded
 
     def finalize_point(self):
         rssi = self.current_x
@@ -118,30 +147,48 @@ class HalfBERRuler:
 
         for name, stat in self.stats.items():
             n_bits = max(1, stat["NumTrBits"])
-            ber = stat["NumErBits"] / n_bits
+            n_err_bits = stat["NumErBits"]
+            ber = n_err_bits / n_bits if n_err_bits > 0 else np.nan
 
             n_frames = max(1, stat["NumTrFrames"])
-            fer = stat["NumErFrames"] / n_frames
+            n_err_frames = stat["NumErFrames"]
 
+            fer = n_err_frames / n_frames if n_err_frames > 0 else np.nan
+
+            if n_err_bits > 0:
+                all_blocks_error_free = False
+            
             self.results[name]["BER"].append(ber)
             self.results[name]["FER"].append(fer)
-
+            
             if self.enable_log:
-                uncoded_str = f"{self.current_uncoded_ber:.3e}" if self.current_uncoded_ber is not None else "N/A"
+                ber_label = f"{ber:.3e}" if np.isfinite(ber) else "not-observed"
+                fer_label = f"{fer:.3e}" if np.isfinite(fer) else "not-observed"
+                # uncoded_str = f"{self.current_uncoded_ber:.3e}" if self.current_uncoded_ber is not None else "N/A"
+                ci_str = f"{np.mean(self._channel_metric_accumulator['ci_db']):.2f}" if self._channel_metric_accumulator["ci_db"] else "N/A"
                 print(f"{ts} | RSSI={rssi:6.2f} | {name:>8} | "
-                      f"BER={ber:.3e} | FER={fer:.3e} | "
-                      f"Uncoded={uncoded_str} | "
-                      f"bits={stat['NumTrBits']:,} | errs={stat['NumErBits']:,}")
+                      f"BER={ber_label} | FER={fer_label} | "
+                      f"CI={ci_str} | "
+                      f"Frames={stat['NumTrFrames']:,} | Errors={stat['NumErBits']:,}")
+                
+        self._append_channel_metric("ci_db", default=None)
 
         if self.enable_log:
             print()
-        if self.stop_by_min_BER:
-            main_ber = list(self.results.values())[0]["BER"][-1]
-            if main_ber <= self.min_BER:
-                self.isStop = True
-
+        main_ber = list(self.results.values())[0]["BER"][-1]
+        if self.stop_by_min_BER and np.isfinite(main_ber) and main_ber < self.min_BER:
+            self.isStop = True
+        
+        if rssi > self.prx_dbm_max:
+            self.isStop = True
+                    
+        if all_blocks_error_free:
+            self.isStop = True
+            
         self._reset_accumulators()
         self.point_index += 1
+
+
 
     def _reset_accumulators(self):
         for stat in self.stats.values():
@@ -150,10 +197,13 @@ class HalfBERRuler:
             stat["NumTrFrames"] = 0
             stat["NumErFrames"] = 0
         self.current_uncoded_ber = None
+        for key in self._channel_metric_accumulator:
+            self._channel_metric_accumulator[key] = []
 
     def get_results(self):
         return {
             "x": np.array(self.x_values),
             "results": self.results,
-            "axis_metric": "dBm"
+            "axis_metric": "dBm",
+            "channel_metrics": self.channel_metrics, 
         }
