@@ -33,7 +33,7 @@ class GMSKModulation:
         self.h = params.get("h", 0.5)
         self.gaus_duration = params.get("gaus_duration", 4)
         self.rect_duration = params.get("rect_duration", 1)
-
+        self.q_gmsk = self.generate_q_gmsk()
         return
 
     def differential_encoding(self, bits):
@@ -112,8 +112,6 @@ class GMSKModulation:
         # Так как берем целую часть, то на результат не влияет 
         active_size = 148
         num_bursts = len(bits) // active_size
-    
-        q_gmsk = self.generate_q_gmsk()
         
         all_signals = []
         guard_period = np.zeros(8 * self.sps, dtype=complex)
@@ -125,7 +123,7 @@ class GMSKModulation:
 
             # Модуляция
             alpha = self.differential_encoding(burst)
-            phi = self.calc_phase(alpha, q_gmsk)
+            phi = self.calc_phase(alpha, self.q_gmsk)
             signal_envelope = np.exp(1j * phi)
             
             # Добавляем сигнал и защитный интервал

@@ -17,6 +17,8 @@ class ChannelEstimate():
         self.channel_profile = simulation_params.get("channel_profile", "TU")
         self.estimator_method = simulation_params.get("estimator_method", "training")
     
+        self.h_awgn_filter = self.h_awgn()
+        
     # Аналитическая h(t) композитного фильтра (передатчик + канал)
     def h_awgn(self):
         BT = self.BT
@@ -125,9 +127,7 @@ class ChannelEstimate():
         h_chan = inv_abs_matrix @ conv_matrix.conj().T @ rx_train_cut
 
         # Получаем коэффициенты композитного канала
-        h_awgn = self.h_awgn()
-        h = np.convolve(h_awgn, h_chan)
-
+        h = np.convolve(self.h_awgn_filter, h_chan)
         # Берем из h окно длиной 5 символов с максимальной энергией
         len_window = 5
         start_idx_max_energy = 0
@@ -157,7 +157,7 @@ class ChannelEstimate():
             tx_burst = tx_signal[start_idx:end_idx]
 
             if self.estimator_method == "analytical":
-                h_est = self.h_awgn()
+                h_est = self.h_awgn_filter
                 rx_burst_aligned = rx_signal
             elif self.estimator_method == "training":
                 rx_burst_aligned, h_est  = self.h_rayleigh(rx_burst, tx_burst)

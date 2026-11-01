@@ -1,4 +1,6 @@
 import numpy as np
+import cProfile
+import pstats
 
 from core.factory import create_pipeline
 
@@ -121,4 +123,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

@@ -70,6 +70,21 @@ class ViterbiDecoder:
             new_metric = np.full(self.n_states, np.inf)
             r = coded_bits[t]
 
+            # Предварительно рассчитываем метрики всех ветвей дабы увеличить скорость 
+            if self.mode == "vit_hard" or self.mode == "diff_phase":
+
+                branch_metric = np.sum(
+                    self.output != r[None, None, :],
+                    axis=2
+                )
+
+            elif self.mode == "vit_soft":
+
+                branch_metric = -np.sum(
+                    (1 - 2 * self.output) * r[None, None, :],
+                    axis=2
+                )
+
             for state in range(self.n_states):
 
                 if path_metric[state] == np.inf:
@@ -78,15 +93,8 @@ class ViterbiDecoder:
                 for bit in (0, 1):
 
                     ns = self.next_state[state, bit]
-                    expected = self.output[state, bit]
-                    
-                    if self.mode == "vit_hard" or self.mode == "diff_phase":
-                        dist = np.sum(r != expected)
-                        
-                    elif self.mode == "vit_soft":
-                        dist = -np.sum((1 - 2*np.array(expected)) * r)
-                        
-                    metric = path_metric[state] + dist
+
+                    metric = path_metric[state] + branch_metric[state, bit]
 
                     if metric < new_metric[ns]:
 

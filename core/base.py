@@ -48,10 +48,6 @@ class BasePipeline:
 
         self.x_value = x_value
 
-    def channel_pass(self, tx_signal):
-
-        return self.channel.process(tx_signal)
-
     def _unwrap_channel_output(self, rx_signal):
 
         if isinstance(rx_signal, ChannelOutput):
