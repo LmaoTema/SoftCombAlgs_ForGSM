@@ -1,15 +1,18 @@
 import numpy as np
 
 class TCHInterleaver:
-    def __init__(self):
+    def __init__(self, CCI_enabled=False):
         self.tail_bits = np.zeros(3, dtype=int)
         self.guard_bits = np.zeros(8, dtype=int)
         self.st_flag = np.zeros(1, dtype=int)
 
-        self.training_seq = np.array([
-            0,0,1,0,1,1,0,1,1,1,0,1,1,1,1,0,
-            0,0,1,0,1,1,0,1,1,1
-        ], dtype=int)
+        if CCI_enabled:
+            self.training_seq = np.random.randint(0, 2, 26)
+        else:
+            self.training_seq = np.array([
+                0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,
+                1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1
+            ], dtype=int)
 
     def process(self, bits):
 
