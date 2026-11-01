@@ -26,7 +26,7 @@ from drawber.res_saver import save_ber_results
 
 
 def build_pipeline(mode, channel_type, mode_cfg):
-    combining_method = simulation_params["combining_method"]
+    combining_method = simulation_params.get("combining_method", "PDMRC")
     
     encoder = ChannelCoder(channel_type, is_working=block_params["encoding"]["is_working"])
     interleaver = Interleaver(channel_type, is_working=block_params["interleaver"]["is_working"])
@@ -73,7 +73,7 @@ def main():
 
     axis_metric = simulation_params.get("x_axis_metric", simulation_params.get("sweep_mode", "dbm"))
 
-    processing_mode = simulation_params["processing_mode"]
+    processing_mode = simulation_params.get("processing_mode", "none")
 
     mode_cfg = mode_params[channel_type]
     frame_bits = mode_cfg["frame_bits"]

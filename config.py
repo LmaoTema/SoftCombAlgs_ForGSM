@@ -3,14 +3,14 @@ from transmitter.channel_coder.utils import MSC_PARAMS
 
 simulation_params = {
     "channel_type":     "CS1",
-    "channel_model":    "awgn",   # "awgn" / "rayleigh_single" / "rayleigh_multipath"
+    "channel_model":    "awgn",                 # "awgn" / "rayleigh_single" / "rayleigh_multipath"
     "channel_profile":  "TU",                   # TU / RA / HT
     "estimator_method": "training",             # "analytical" / "training"/ "composite_derot"
     "x_axis_metric":    "dbm",                  # "dbm" / "snr_db" / "ebn0_db"
-    "processing_mode":  "none",                 # "none"/ "half" / "full"    
-    "combining_method": "PDMRC",                   # "PDMRC" / "SC" / "ACS"
-    "file_name":        "half_MCS5_rayleigh_multipath_TU_no_combining",
-    "power_delta_db":      0.0,
+    "file_name":        "Test",
+    
+    "CCI_enabled":      False,
+    "CCI_power_dbm":    -88.0,
 }
 
 block_params = {
@@ -23,7 +23,7 @@ block_params = {
 }
 
 BER = {
-    "prx_dbm_init": -119.0,
+    "prx_dbm_init": -116.0,
     "prx_dbm_init_step": 1.0,
     "prx_dbm_min_step": 1.0,
     "prx_dbm_max_step": 1.0,

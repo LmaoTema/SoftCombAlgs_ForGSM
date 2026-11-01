@@ -295,6 +295,177 @@ class ChannelBlock(Block):
             samples_per_symbol = self.samples_per_symbol,
             outage_threshold_db = channel_params.get("outage_threshold_db", None),
         )
+    def process_with_interference(
+        self,
+        useful_signal,
+        interferer_signal,
+        interferer_channel,
+        interferer_power_dbm
+    ):
+        
+        useful_signal = np.asarray(useful_signal, dtype=np.complex128)
+        interferer_signal = np.asarray(interferer_signal, dtype=np.complex128)
+
+        if useful_signal.shape != interferer_signal.shape:
+            raise ValueError("Полезный сигнал и интерферент должны иметь одинаковую длину")
+
+        if not self.is_working:
+            state = ChannelState(
+                kind="bypass",
+                impulse_response=np.array([1.0 + 0.0j]),
+                average_channel_power=1.0,
+                metadata={"channel_model": "bypass"}
+            )
+            return ChannelOutput(
+                signal=useful_signal + interferer_signal,
+                channel_state=state
+            )
+
+        # Устанавливаем физические мощности сигналов
+        useful, useful_target_watt, _, _ = self.large_scale_channel.process(
+            useful_signal,
+            self.signal_power
+        )
+
+        interferer, interferer_target_watt, _, _ = (
+            interferer_channel.large_scale_channel.process(
+                interferer_signal,
+                interferer_power_dbm
+            )
+        )
+        
+        if self.fading_channel is not None:
+            useful, useful_state = self.fading_channel.process_with_state(
+                useful,
+                samples_per_symbol=self.samples_per_symbol
+            )
+        else:
+            useful_state = self.chain._default_state(useful)
+
+        if interferer_channel.fading_channel is not None:
+            interferer, interferer_state = (
+                interferer_channel.fading_channel.process_with_state(
+                    interferer,
+                    samples_per_symbol=interferer_channel.samples_per_symbol
+                )
+            )
+        else:
+            interferer_state = interferer_channel.chain._default_state(interferer)
+
+        useful_power_watt = float(np.mean(np.abs(useful) ** 2))
+        interferer_power_watt = float(np.mean(np.abs(interferer) ** 2))
+
+        # Суммируем сигналы и добавляем общий шум приёмника
+        combined_signal = useful + interferer
+
+        rx_signal, noise_power_watt = self.noise_channel.process(
+            combined_signal
+        )
+
+        output_power_watt = float(np.mean(np.abs(rx_signal) ** 2))
+
+        # Рассчитываем SINR и Eb/N0 полезного сигнала
+        interference_plus_noise = interferer_power_watt + noise_power_watt
+
+        snr_db = self.noise_channel.compute_snr_db(
+            useful_power_watt,
+            interference_plus_noise
+        )
+
+        reference_snr_db = self.noise_channel.compute_snr_db(
+            useful_target_watt,
+            interference_plus_noise
+        )
+
+        ebn0_db = self.noise_channel.compute_ebn0_db(snr_db)
+        reference_ebn0_db = self.noise_channel.compute_ebn0_db(reference_snr_db)
+
+        noise_power_dbm = self.noise_channel.watt_to_dbm(noise_power_watt)
+        useful_power_dbm = self.noise_channel.watt_to_dbm(useful_power_watt)
+        interferer_power_dbm = self.noise_channel.watt_to_dbm(interferer_power_watt)
+
+        normalized_signal, measured_output_power, normalization_gain, normalized_power = (
+            self.chain._normalize_signal_to_unit_power(rx_signal)
+        )
+
+        output_power_dbm = self.noise_channel.watt_to_dbm(
+            measured_output_power
+        )
+
+        useful_state.symbol_energy = measured_output_power * self.samples_per_symbol
+        useful_state.average_sample_power = measured_output_power
+
+        useful_state.metadata.update({
+            "interference_enabled": True,
+            "interferer_power_dbm": interferer_power_dbm,
+            "interferer_target_power_dbm": interferer_power_dbm,
+            "useful_power_dbm": useful_power_dbm,
+            "noise_power_dbm": noise_power_dbm,
+            "sinr_db": snr_db,
+        })
+
+        resolved_axis_metric = self.noise_channel.normalize_axis_metric(
+            self.axis_metric
+        )
+
+        axis_value = {
+            "dbm": self.noise_channel.watt_to_dbm(useful_target_watt),
+            "snr_db": reference_snr_db,
+            "ebn0_db": reference_ebn0_db,
+        }[resolved_axis_metric]
+
+        noise_metadata = self.noise_channel.noise_metadata()
+
+        return ChannelOutput(
+            signal=normalized_signal,
+            channel_state=useful_state,
+
+            noise_power_watt=noise_power_watt,
+            noise_power_dbm=noise_power_dbm,
+            noise_variance_per_sample=self.noise_channel.noise_variance_per_sample(),
+
+            applied_signal_power_watt=useful_target_watt,
+            applied_signal_power_dbm=self.signal_power,
+
+            measured_signal_power_watt=useful_power_watt,
+            measured_signal_power_dbm=useful_power_dbm,
+
+            measured_output_power_watt=measured_output_power,
+            measured_output_power_dbm=output_power_dbm,
+
+            normalized_signal_power_watt=normalized_power,
+            normalization_gain=normalization_gain,
+
+            snr_db=snr_db,
+            ebn0_db=ebn0_db,
+            carrier_to_noise_db=snr_db,
+
+            symbol_rate_hz=self.noise_channel.symbol_rate_hz(),
+            bit_rate_hz=self.noise_channel.bit_rate_hz(),
+
+            measured_sample_snr_db=snr_db,
+            average_channel_power=useful_state.average_channel_power,
+
+            metadata={
+                "axis_metric": resolved_axis_metric,
+                "axis_value": axis_value,
+                "interference_enabled": True,
+                "useful_power_dbm": self.signal_power,
+                "interferer_power_dbm": interferer_power_dbm,
+                "interferer_target_power_dbm": interferer_power_dbm,
+                "noise_power_dbm": noise_power_dbm,
+                "sinr_db": snr_db,
+                "reference_snr_db": reference_snr_db,
+                "reference_ebn0_db": reference_ebn0_db,
+                "physical_output_power_dbm": output_power_dbm,
+                "normalization_gain": normalization_gain,
+                "unit_normalization_applied": True,
+                "output_signal_kind": "receiver_normalized",
+                "noise_model": noise_metadata["noise_model"],
+                "noise_bandwidth_hz": noise_metadata["noise_bandwidth_hz"],
+                "interferer_channel_state": interferer_state.metadata,
+            }
+        )
 
     def process(self, tx_signal):
         if not self.is_working:
